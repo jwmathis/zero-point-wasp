@@ -1,6 +1,16 @@
 /*CSS to handle the HUD*/
 
-body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', 'Courier New', Courier, monospace; }
+body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', 'Courier New', Courier, monospace; box-sizing: border-box; transition: box-shadow 0.1s ease-in-out;}
+
+canvas {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    /* Lower the z-index so the body shadow or UI can sit on top if needed */
+    z-index: 1; 
+}
+
 .overlay {
     position: fixed;
     top: 0; left: 0;
@@ -153,6 +163,31 @@ label {
     filter: brightness(2) hue-rotate(90deg); /* Turns it green/yellow briefly */
     transition: transform 0.1s;
 }
+
+#damage-haze {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none; /* Crucial: This lets clicks pass through to the game */
+    
+    /* The Haze: Clear center (transparent), Red edges (rgba(150,0,0,0.8)) */
+    background: radial-gradient(circle, rgba(255,0,0,0) 50%, rgba(150,0,0,0.8) 100%);
+    
+    /* Layering: Put this above the canvas (z:1) but maybe under your main HUD text (z:3) */
+    z-index: 2; 
+    
+    /* Smooth fade in/out */
+    transition: opacity 0.15s ease-in-out;
+    opacity: 0;
+}
+
+/* This is the class we will add/remove via JS */
+#damage-haze.active {
+    opacity: 1;
+}
+
 
 body::after {
     content: "";

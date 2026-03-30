@@ -13,6 +13,8 @@ const gameState = {
     isPaused: false,
     hasStarted: false,
     isDead: false,
+    keys: {w: false, a: false, s: false, d: false },
+    moveSpeed: 0.5,
 };
 
 /// Functions
@@ -35,8 +37,11 @@ window.gameState = gameState;
 
 // Handle the Start Button
 document.getElementById('start-button').addEventListener('click', () => {
-    gameState.hasStarted = true;
     document.getElementById('start-screen').style.display = 'none';
+    // Small delay to prevent the "click" from bleeding into the game
+    setTimeout(() => {
+        gameState.hasStarted = true;
+    }, 100); 
 });
 
 // Handle Pause Toggle (P Key)
@@ -163,6 +168,49 @@ setInterval(() => {
     ));
 }, 4000);
 
+const hazeEl = document.getElementById('damage-haze');
+
+function updatePlayer() {
+    const limit = 10; 
+    const buffer = 0.1; // Detect the hit slightly before the hard stop
+
+    // 1. Movement logic
+    if (gameState.keys.a) camera.position.x -= gameState.moveSpeed;
+    if (gameState.keys.d) camera.position.x += gameState.moveSpeed;
+    if (gameState.keys.w) camera.position.y += gameState.moveSpeed;
+    if (gameState.keys.s) camera.position.y -= gameState.moveSpeed;
+
+    if (Math.abs(camera.position.x) > (limit - buffer) || Math.abs(camera.position.y) > (limit - buffer)) {
+        
+        // 1. Show the "Haze"
+        hazeEl.style.display = 'block'; // Ensure it exists
+        // Add the class AFTER ensuring display:block to trigger the fade transition
+        setTimeout(() => hazeEl.classList.add('active'), 10);
+
+        // 2. Heavy vibe/scrape vibration
+        // Make it a bit stronger for impact
+        camera.position.x += (Math.random() - 0.5) * 0.25;
+        camera.position.y += (Math.random() - 0.5) * 0.25;
+        
+        // Damage (increased slightly for effect)
+        gameState.health -= 0.3; 
+        updateHUD();
+
+    } else {
+        // Clear the effect when moving away from the wall
+        hazeEl.classList.remove('active');
+        // Optional: Hide completely after fade-out to save browser resources
+        // setTimeout(() => { if (!hazeEl.classList.contains('active')) hazeEl.style.display = 'none'; }, 200);
+    }
+
+    // 3. The Hard Wall (The Clamp)
+    camera.position.x = THREE.MathUtils.clamp(camera.position.x, -limit, limit);
+    camera.position.y = THREE.MathUtils.clamp(camera.position.y, -limit, limit);
+    
+    // Aesthetic roll
+    camera.rotation.z = -camera.position.x * 0.02;
+}
+
 /// --- GAME LOOP ---
 function animate() {
     requestAnimationFrame(animate);
@@ -185,16 +233,23 @@ function animate() {
     wormhole.update(1.2);
     updateStars();
 
+    updatePlayer();
+    checkGameOver();
     enemies.update(camera, now);
     projectiles.update();
     
-    // Check if player projectiles hit enemies
     projectiles.bolts.forEach((bolt, bIdx) => {
         enemies.enemies.forEach((enemy, eIdx) => {
-            if (bolt.position.distanceTo(enemy.position) < 2) {
+            // Increase the 2 to 3.5 for a "generous" hitbox
+            // This compensates for high speeds and frame-rate skips
+            if (bolt.position.distanceTo(enemy.position) < 3.5) {
                 enemies.removeEnemy(enemy, eIdx);
                 scene.remove(bolt);
                 projectiles.bolts.splice(bIdx, 1);
+                
+                // Visual Feedback: Flash the crosshair or shake the camera
+                document.getElementById('crosshair').classList.add('hit');
+                setTimeout(() => document.getElementById('crosshair').classList.remove('hit'), 100);
             }
         });
     });
@@ -218,4 +273,14 @@ window.addEventListener('mousemove', (e) => {
     camera.rotation.x = y * 0.3;
     // Add a slight "roll" (Z-rotation) when moving the mouse left/right
     camera.rotation.z = -x * 0.1; 
+});
+
+window.addEventListener('keydown', (e) => {
+    const key = e.key.toLowerCase();
+    if (gameState.keys.hasOwnProperty(key)) gameState.keys[key] = true;
+});
+
+window.addEventListener('keyup', (e) => {
+    const key = e.key.toLowerCase();
+    if (gameState.keys.hasOwnProperty(key)) gameState.keys[key] = false;
 });
