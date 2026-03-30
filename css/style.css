@@ -9,3 +9,11 @@ body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New'
     text-shadow: 0 0 5px #00ffff;
     pointer-events: none; /*Allow clicking through the UI to the game*/
 }
+body::after {
+    content: "";
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: radial-gradient(circle, transparent 40%, black 110%);
+    pointer-events: none;
+}
