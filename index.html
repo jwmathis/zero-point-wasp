@@ -10,8 +10,28 @@ Minimal HTML to provide container for the game and a place for the HUD.
     </head>
     <body>
         <div id="ui-layer">
-            <div id="health">Health: 100</div>
-            <div id="ammos">Ammo: 50</div>
+
+            <div class="stat-container">
+                <label>SYSTEM INTEGRITY</label>
+                <div class="bar-bg"><div id="health-bar" style="width:100%"></div></div>
+            </div>
+
+            <div class="stat-container">
+                <label>ZERO-POINT ENERGY</label>
+                <div id="ammo-segments">
+                    <div class="segment active"></div>
+                    <div class="segment active"></div>
+                    <div class="segment active"></div>
+                    <div class="segment active"></div>
+                    <div class="segment active"></div>
+                </div>
+            </div>
+
+            <div id="crosshair">
+                <div class="line vertical"></div>
+                <div class="line horizontal"></div>
+                <div class="dot"></div>
+            </div>
         </div>
         <script type="module" src="js/main.js"></script>
     </body>

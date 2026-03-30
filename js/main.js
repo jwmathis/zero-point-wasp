@@ -1,6 +1,28 @@
 import * as THREE from 'three';
 import { Wormhole } from './World.js';
 
+/// Global state for the Wasp protocol
+const gameState = {
+    health: 100,
+    ammo: 5, // 5 segments
+};
+
+/// Functions
+function updateHUD() {
+    // Update Health
+    document.getElementById('health-bar').style.width = `${gameState.health}%`;
+    
+    // Update Ammo Segments
+    const segments = document.querySelectorAll('.segment');
+    segments.forEach((seg, index) => {
+        if (index < gameState.ammo) {
+            seg.classList.add('active');
+        } else {
+            seg.classList.remove('active');
+        }
+    });
+}
+
 /// --- SCENE SETUP ---
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -44,6 +66,8 @@ function animate() {
     // update the tunnel animation
     wormhole.update();
 
+    updateHUD();
+    
     renderer.render(scene, camera);
 }
 
