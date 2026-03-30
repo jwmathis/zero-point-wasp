@@ -35,7 +35,7 @@ export class EnemySystem {
             if (enemy.userData.type === 'seeker') {
                 // Move slowly toward the player
                 const dir = new THREE.Vector3().subVectors(camera.position, enemy.position).normalize();
-                enemy.position.addScaledVector(dir, 0.45);
+                enemy.position.addScaledVector(dir, 0.25);
             } 
             else if (enemy.userData.type === 'striker' && dist < 50) {
                 // Shoot every 2 seconds if close enough

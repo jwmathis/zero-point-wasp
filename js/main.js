@@ -9,7 +9,7 @@ const gameState = {
     ammo: 5, // 5 segments
     maxAmmo: 5,
     lastRegen: 0,
-    regenInterval: 3000, // Recharge 1 segment every 3 seconds (3000ms)
+    regenInterval: 1500, // Recharge 1 segment every 1.5 seconds (1500ms)
     isPaused: false,
     hasStarted: false,
     isDead: false,
@@ -128,7 +128,13 @@ scene.add(stars);
 /// --- PROJECTILES ---
 const projectiles = new ProjectileSystem(scene);
 // Mouse CLick Listener
-window.addEventListener('mousedown', () => {
+window.addEventListener('mousedown', (event) => {
+    // Only fire if the game has actually started and isn't paused
+    if (!gameState.hasStarted || gameState.isPaused || gameState.isDead) return;
+
+    //Prevent firing if clicking on a button or the UI Layer
+    if (event.target.tagName === 'BUTTON' || event.target.closest("ui-layer")) return;
+
     if (gameState.ammo > 0) {
         projectiles.fire(camera);
         gameState.ammo--; //Deplete an ammo segment
