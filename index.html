@@ -50,12 +50,20 @@ Minimal HTML to provide container for the game and a place for the HUD.
                     <div class="segment active"></div>
                 </div>
             </div>
+            
+            <div class="stat-container">
+                <label>SYNC RATING</label>
+                <div id="score-display" style="font-size: 24px; color: #00F2FF;">000000</div>
+            </div>
+
+            <p>FINAL SYNC: <span id="final-score-value">0</span></p>
 
             <div id="crosshair">
                 <div class="line vertical"></div>
                 <div class="line horizontal"></div>
                 <div class="dot"></div>
             </div>
+
         </div>
         <div id="damage-haze" style="display: none;"></div>
 

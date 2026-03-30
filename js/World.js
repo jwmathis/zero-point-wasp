@@ -1,9 +1,11 @@
+/**
+ * World.js - Generates the infinite tunnel environment.
+ */
 import * as THREE from 'three';
 
 export class Wormhole {
     constructor(scene) {
-        
-        // Create the Geometry
+        // Procedural curve for the tunnel
         const curve = new THREE.CatmullRomCurve3([
             new THREE.Vector3(0, 0, 0),
             new THREE.Vector3(5, 5, -50),
@@ -14,7 +16,6 @@ export class Wormhole {
 
         const geometry = new THREE.TubeGeometry(curve, 100, 20, 16, false);
 
-        // Create a wireframe material for a vector look
         this.material = new THREE.MeshBasicMaterial({
             color: 0x00AAFF,
             wireframe: true,
@@ -28,9 +29,12 @@ export class Wormhole {
     }
 
     update(speed = 0.01) {
-        // 1. Spin the tunnel for that dizzying "Warp" effect
+        // Spin the tunnel
         this.tunnel.rotation.z += 0.005; 
-
-        this.material.map?.offset.set(0, this.material.map.offset.y + playerSpeed);
+        
+        // Offset texture if a map exists
+        if (this.material.map) {
+            this.material.map.offset.y += speed * 0.01;
+        }
     }
 }

@@ -1,3 +1,6 @@
+/**
+ * Enemies.js - Manages enemy spawning, behavior, and collision.
+ */
 import * as THREE from 'three';
 
 export class EnemySystem {
@@ -5,13 +8,21 @@ export class EnemySystem {
         this.scene = scene;
         this.enemies = [];
         this.enemyProjectiles = [];
-        
-        // Geometries for different types
         this.geos = {
-            mine: new THREE.IcosahedronGeometry(1, 0),   // Static jagged shape
-            seeker: new THREE.OctahedronGeometry(1.2, 0), // Moves toward player
-            striker: new THREE.TetrahedronGeometry(1.5, 0) // Shoots at player
+            mine: new THREE.IcosahedronGeometry(1, 0),
+            seeker: new THREE.OctahedronGeometry(1.2, 0),
+            striker: new THREE.TetrahedronGeometry(1.5, 0)
         };
+        
+        // Auto-spawn timer
+        setInterval(() => this.spawnRandom(), 4000);
+    }
+
+    spawnRandom() {
+        if (!window.gameState.hasStarted || window.gameState.isPaused) return;
+        const types = ['mine', 'seeker', 'striker'];
+        const type = types[Math.floor(Math.random() * types.length)];
+        this.spawn(type, new THREE.Vector3((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, -150));
     }
 
     spawn(type, position) {
@@ -22,44 +33,63 @@ export class EnemySystem {
         const mesh = new THREE.Mesh(this.geos[type], material);
         mesh.position.copy(position);
         mesh.userData = { type, health: 1, lastShot: 0 };
-        
         this.scene.add(mesh);
         this.enemies.push(mesh);
     }
 
+    checkHits(projectileSystem) {
+        projectileSystem.bolts.forEach((bolt, bIdx) => {
+            this.enemies.forEach((enemy, eIdx) => {
+                if (bolt.position.distanceTo(enemy.position) < 3.5) {
+                    // 1. Calculate Score
+                    const pointsMap = { 'mine': 100, 'seeker': 250, 'striker': 500 };
+                    const points = pointsMap[enemy.userData.type] || 100;
+                    
+                    window.gameState.score += points;
+                    
+                    // 2. Trigger the Floating Text
+                    if (window.createScorePopup) {
+                        window.createScorePopup(enemy.position, points);
+                    }
+
+                    // 3. Cleanup and Feedback
+                    this.removeEnemy(enemy, eIdx);
+                    this.scene.remove(bolt);
+                    projectileSystem.bolts.splice(bIdx, 1);
+                    
+                    const ch = document.getElementById('crosshair');
+                    ch.classList.add('hit');
+                    setTimeout(() => ch.classList.remove('hit'), 100);
+                }
+            });
+        });
+    }
+
     update(camera, now) {
+        // Update Enemies
         this.enemies.forEach((enemy, index) => {
             const dist = enemy.position.distanceTo(camera.position);
 
-            // 1. BEHAVIOR LOGIC
             if (enemy.userData.type === 'seeker') {
-                // Move slowly toward the player
                 const dir = new THREE.Vector3().subVectors(camera.position, enemy.position).normalize();
                 enemy.position.addScaledVector(dir, 0.25);
-            } 
-            else if (enemy.userData.type === 'striker' && dist < 50) {
-                // Shoot every 2 seconds if close enough
+            } else if (enemy.userData.type === 'striker' && dist < 50) {
                 if (now - enemy.userData.lastShot > 2000) {
                     this.fireAtPlayer(enemy, camera);
                     enemy.userData.lastShot = now;
                 }
             }
 
-            // Base movement: All enemies should drift toward the player at a minimum speed
-            // This ensures they don't just sit in the distance
-            enemy.position.z += 0.5;
+            enemy.position.z += 0.5; // Approach player
 
-            // 2. COLLISION: Enemy hits player
-            if (dist < 2.5) {
+            if (dist < 2.5) { // Crash collision
                 this.damagePlayer(enemy.userData.type);
                 this.removeEnemy(enemy, index);
             }
-
-            // Cleanup if they go way behind the player
             if (enemy.position.z > 10) this.removeEnemy(enemy, index);
         });
 
-        // Update enemy bullets
+        // Update Enemy Bullets
         this.enemyProjectiles.forEach((p, i) => {
             p.position.addScaledVector(p.userData.dir, 0.5);
             if (p.position.distanceTo(camera.position) < 1.5) {
@@ -71,10 +101,7 @@ export class EnemySystem {
     }
 
     fireAtPlayer(enemy, camera) {
-        const bullet = new THREE.Mesh(
-            new THREE.SphereGeometry(0.3), 
-            new THREE.MeshBasicMaterial({ color: 0xff0000 })
-        );
+        const bullet = new THREE.Mesh(new THREE.SphereGeometry(0.3), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
         bullet.position.copy(enemy.position);
         bullet.userData.dir = new THREE.Vector3().subVectors(camera.position, enemy.position).normalize();
         this.scene.add(bullet);
@@ -83,6 +110,9 @@ export class EnemySystem {
 
     damagePlayer(source) {
         const damageMap = { mine: 25, seeker: 35, striker: 20, bolt: 10 };
+        window.gameState.health -= damageMap[source] || 10;
+        // Getting hit by an enemy resets your multiplier
+        window.gameState.multiplier = 1;
         window.gameState.health -= damageMap[source] || 10;
     }
 
