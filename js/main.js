@@ -6,6 +6,10 @@ import { ProjectileSystem } from './Projectiles.js';
 const gameState = {
     health: 100,
     ammo: 5, // 5 segments
+    maxAmmo: 5,
+    lastRegen: 0,
+    regenInterval: 3000 // Recharge 1 segment every 3 seconds (3000ms)
+
 };
 
 /// Functions
@@ -29,6 +33,7 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 const light = new THREE.AmbientLight(0xffffff, 1);
+camera.rotation.order = 'YXZ';
 
 scene.background = new THREE.Color(0x111111);
 scene.add(light);
@@ -42,7 +47,7 @@ const wormhole = new Wormhole(scene);
 
 // Position the camera inside the tunnel
 camera.position.set(0,0,5);
-camera.lookAt(0,0,0);
+camera.lookAt(0,0,-100);
 
 // Make stars
 const starGeometry = new THREE.BufferGeometry();
@@ -69,6 +74,12 @@ window.addEventListener('mousedown', () => {
         projectiles.fire(camera);
         gameState.ammo--; //Deplete an ammo segment
         updateHUD();
+
+        light.intensity = 4.0;
+        setTimeout(() => {
+            light.intensity = 1.0; //return to normal after 50ms
+        }, 50);
+
     }
     
 });
@@ -77,10 +88,21 @@ window.addEventListener('mousedown', () => {
 function animate() {
     requestAnimationFrame(animate);
     
+    const now = performance.now();
+
+    if (gameState.ammo < gameState.maxAmmo) {
+        if (now - gameState.lastRegen > gameState.regenInterval) {
+            gameState.ammo++;
+            gameState.lastRegen = now;
+            updateHUD();
+        }
+    } else {
+        gameState.lastRegen = now;
+    }
+
     // update the tunnel animation
     wormhole.update();
     projectiles.update();
-    updateHUD();
     
     renderer.render(scene, camera);
 }
@@ -91,4 +113,13 @@ window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-})
+});
+
+window.addEventListener('mousemove', (e) => {
+    const x = (e.clientX / window.innerWidth) * 2 - 1;
+    const y = -(e.clientY / window.innerHeight) * 2 + 1;
+    
+    // Rotate camera to follow mouse
+    camera.rotation.y = -x * 0.5;
+    camera.rotation.x = y * 0.5;
+});

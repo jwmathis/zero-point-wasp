@@ -35,9 +35,9 @@ export class Wormhole {
             side: THREE.BackSide
         });
 
-        const backTunnel = new THREE.Mesh(geometry. backMaterial);
+        const backTunnel = new THREE.Mesh(geometry, backMaterial);
         backTunnel.scale.set(1.01, 1.01, 1.01);
-        scene.add(backTunnel);
+        //scene.add(backTunnel);
 
 
     }
