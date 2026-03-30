@@ -9,8 +9,9 @@ const gameState = {
     ammo: 5, // 5 segments
     maxAmmo: 5,
     lastRegen: 0,
-    regenInterval: 3000 // Recharge 1 segment every 3 seconds (3000ms)
-
+    regenInterval: 3000, // Recharge 1 segment every 3 seconds (3000ms)
+    isPaused: false,
+    hasStarted: false
 };
 
 /// Functions
@@ -30,6 +31,24 @@ function updateHUD() {
 }
 
 window.gameState = gameState; 
+
+// 2. Handle the Start Button
+document.getElementById('start-button').addEventListener('click', () => {
+    gameState.hasStarted = true;
+    document.getElementById('start-screen').style.display = 'none';
+});
+
+// 3. Handle Pause Toggle (P Key)
+window.addEventListener('keydown', (e) => {
+    if (e.key.toLowerCase() === 'p' && gameState.hasStarted) {
+        togglePause();
+    }
+});
+
+function togglePause() {
+    gameState.isPaused = !gameState.isPaused;
+    document.getElementById('pause-screen').style.display = gameState.isPaused ? 'flex' : 'none';
+}
 
 /// --- SCENE SETUP ---
 const scene = new THREE.Scene();
@@ -105,6 +124,9 @@ setInterval(() => {
 function animate() {
     requestAnimationFrame(animate);
     
+    // Stop all logic if the game hasn't started or is paused
+    if (!gameState.hasStarted || gameState.isPaused) return;
+
     const now = performance.now();
 
     if (gameState.ammo < gameState.maxAmmo) {
@@ -133,7 +155,7 @@ function animate() {
             }
         });
     });
-    
+
     renderer.render(scene, camera);
 }
 

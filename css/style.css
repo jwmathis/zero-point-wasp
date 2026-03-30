@@ -1,6 +1,36 @@
 /*CSS to handle the HUD*/
 
 body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', 'Courier New', Courier, monospace; }
+.overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 10, 20, 0.9);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 200;
+    color: #00F2FF;
+    text-shadow: 0 0 10px #00F2FF;
+}
+
+button {
+    background: transparent;
+    border: 1px solid #00F2FF;
+    color: #00F2FF;
+    padding: 15px 30px;
+    font-family: 'Share Tech Mono', monospace;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: 0.3s;
+}
+
+button:hover {
+    background: #00F2FF;
+    color: #000;
+    box-shadow: 0 0 20px #00F2FF;
+}
 #ui-layer {
     position: absolute;
     top: 30px;

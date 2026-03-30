@@ -9,8 +9,20 @@ Minimal HTML to provide container for the game and a place for the HUD.
         <link rel="stylesheet" href="css/style.css">
     </head>
     <body>
-        <div id="ui-layer">
 
+        <div id="start-screen" class="overlay">
+            <h1>ZERO-POINT: THE WASP PROTOCOL</h1>
+            <p>NEURAL LINK ESTABLISHED</p>
+            <button id="start-button">INITIALIZE PILOT</button>
+        </div>
+
+        <div id="pause-screen" class="overlay" style="display: none;">
+            <h1>SYSTEMS HALTED</h1>
+            <p>PRESS 'P' TO RESUME</p>
+            <button id="resume-button">RESUME</button>
+        </div>
+
+        <div id="ui-layer">
             <div class="stat-container">
                 <label>SYSTEM INTEGRITY</label>
                 <div class="bar-bg"><div id="health-bar" style="width:100%"></div></div>
@@ -33,6 +45,7 @@ Minimal HTML to provide container for the game and a place for the HUD.
                 <div class="dot"></div>
             </div>
         </div>
+
         <script type="module" src="js/main.js"></script>
     </body>
 </html>
