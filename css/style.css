@@ -1,0 +1,11 @@
+/*CSS to handle the HUD*/
+
+body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', 'Courier New', Courier, monospace; }
+#ui-layer {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    color: #00ffff;
+    text-shadow: 0 0 5px #00ffff;
+    pointer-events: none; /*Allow clicking through the UI to the game*/
+}
