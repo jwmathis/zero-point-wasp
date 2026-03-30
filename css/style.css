@@ -31,6 +31,16 @@ button:hover {
     color: #000;
     box-shadow: 0 0 20px #00F2FF;
 }
+
+#game-over-screen {
+    background: rgba(40, 0, 0, 0.95); /* Dark Red tint */
+}
+
+#game-over-screen h1 {
+    font-size: 4rem;
+    margin-bottom: 0;
+}
+
 #ui-layer {
     position: absolute;
     top: 30px;

@@ -4,7 +4,7 @@ export class ProjectileSystem {
     constructor(scene) {
         this.scene = scene;
         this.bolts = [];
-        this.speed = 2.0;
+        this.speed = 4.0;
         this.sideToggle = 1; // 1 for right, -1 for left
 
         // Simple glowing cylinder for the bolt

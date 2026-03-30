@@ -11,7 +11,8 @@ const gameState = {
     lastRegen: 0,
     regenInterval: 3000, // Recharge 1 segment every 3 seconds (3000ms)
     isPaused: false,
-    hasStarted: false
+    hasStarted: false,
+    isDead: false,
 };
 
 /// Functions
@@ -32,18 +33,36 @@ function updateHUD() {
 
 window.gameState = gameState; 
 
-// 2. Handle the Start Button
+// Handle the Start Button
 document.getElementById('start-button').addEventListener('click', () => {
     gameState.hasStarted = true;
     document.getElementById('start-screen').style.display = 'none';
 });
 
-// 3. Handle Pause Toggle (P Key)
+// Handle Pause Toggle (P Key)
 window.addEventListener('keydown', (e) => {
     if (e.key.toLowerCase() === 'p' && gameState.hasStarted) {
         togglePause();
     }
 });
+
+// Handle Restart button
+document.getElementById('restart-button').addEventListener('click', () => {
+    window.location.reload(); // Simplest way to reset a Three.js scene
+});
+
+function checkGameOver() {
+    if (gameState.health <= 0 && !gameState.isDead) {
+        gameState.isDead = true;
+        gameState.health = 0; // Clamp at zero
+        updateHUD();
+        
+        // Show the screen
+        document.getElementById('game-over-screen').style.display = 'flex';
+        
+        // Optional: Stop the wormhole music or play a crash sound here
+    }
+}
 
 function togglePause() {
     gameState.isPaused = !gameState.isPaused;
@@ -85,8 +104,26 @@ for (let i = 0; i < 5000; i++) {
 
 starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
 const stars = new THREE.Points(starGeometry, starMaterial);
-scene.add(stars);
 
+function updateStars() {
+    const positions = stars.geometry.attributes.position.array;
+    
+    for (let i = 0; i < positions.length; i += 3) {
+        // Move star toward camera (Z increases)
+        positions[i + 2] += 2.5; 
+
+        // If star passes the camera (z > 5), reset it to the far back
+        if (positions[i + 2] > 10) {
+            positions[i + 2] = -1000;
+            // Also randomize X and Y slightly to prevent "pattern" recognition
+            positions[i] = (Math.random() - 0.5) * 1000;
+            positions[i + 1] = (Math.random() - 0.5) * 1000;
+        }
+    }
+    // Required to tell Three.js the stars moved
+    stars.geometry.attributes.position.needsUpdate = true;
+}
+scene.add(stars);
 
 /// --- PROJECTILES ---
 const projectiles = new ProjectileSystem(scene);
@@ -124,8 +161,7 @@ setInterval(() => {
 function animate() {
     requestAnimationFrame(animate);
     
-    // Stop all logic if the game hasn't started or is paused
-    if (!gameState.hasStarted || gameState.isPaused) return;
+    if (!gameState.hasStarted || gameState.isPaused || gameState.isDead) return;
 
     const now = performance.now();
 
@@ -140,7 +176,8 @@ function animate() {
     }
 
     // update the tunnel animation
-    wormhole.update();
+    wormhole.update(1.2);
+    updateStars();
 
     enemies.update(camera, now);
     projectiles.update();
@@ -171,7 +208,8 @@ window.addEventListener('mousemove', (e) => {
     const x = (e.clientX / window.innerWidth) * 2 - 1;
     const y = -(e.clientY / window.innerHeight) * 2 + 1;
     
-    // Rotate camera to follow mouse
-    camera.rotation.y = -x * 0.5;
-    camera.rotation.x = y * 0.5;
+    camera.rotation.y = -x * 0.3;
+    camera.rotation.x = y * 0.3;
+    // Add a slight "roll" (Z-rotation) when moving the mouse left/right
+    camera.rotation.z = -x * 0.1; 
 });

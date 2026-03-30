@@ -35,7 +35,7 @@ export class EnemySystem {
             if (enemy.userData.type === 'seeker') {
                 // Move slowly toward the player
                 const dir = new THREE.Vector3().subVectors(camera.position, enemy.position).normalize();
-                enemy.position.addScaledVector(dir, 0.15);
+                enemy.position.addScaledVector(dir, 0.45);
             } 
             else if (enemy.userData.type === 'striker' && dist < 50) {
                 // Shoot every 2 seconds if close enough
@@ -44,6 +44,10 @@ export class EnemySystem {
                     enemy.userData.lastShot = now;
                 }
             }
+
+            // Base movement: All enemies should drift toward the player at a minimum speed
+            // This ensures they don't just sit in the distance
+            enemy.position.z += 0.5;
 
             // 2. COLLISION: Enemy hits player
             if (dist < 2.5) {
@@ -78,8 +82,8 @@ export class EnemySystem {
     }
 
     damagePlayer(source) {
-        const damageMap = { mine: 10, seeker: 20, striker: 15, bolt: 5 };
-        window.gameState.health -= damageMap[source] || 5;
+        const damageMap = { mine: 25, seeker: 35, striker: 20, bolt: 10 };
+        window.gameState.health -= damageMap[source] || 10;
     }
 
     removeEnemy(enemy, index) {
