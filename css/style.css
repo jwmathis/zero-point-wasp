@@ -53,6 +53,17 @@ label {
     box-shadow: 0 0 10px #00F2FF;
 }
 
+@keyframes pulse {
+    0% { opacity: 0.5; }
+    50% { opacity: 1; }
+    100% { opacity: 0.5; }
+}
+
+.segment:not(.active) {
+    border-color: rgba(0, 242, 255, 0.3);
+    animation: pulse 2s infinite ease-in-out;
+}
+
 #crosshair {
     position: fixed;
     top: 50%;

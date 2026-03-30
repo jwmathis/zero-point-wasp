@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Wormhole } from './World.js';
 import { ProjectileSystem } from './Projectiles.js';    
+import { EnemySystem } from './Enemies.js';
 
 /// Global state for the Wasp protocol
 const gameState = {
@@ -27,6 +28,8 @@ function updateHUD() {
         }
     });
 }
+
+window.gameState = gameState; 
 
 /// --- SCENE SETUP ---
 const scene = new THREE.Scene();
@@ -84,6 +87,20 @@ window.addEventListener('mousedown', () => {
     
 });
 
+
+/// --- ENEMIES ---
+const enemies = new EnemySystem(scene);
+
+setInterval(() => {
+    const types = ['mine', 'seeker', 'striker'];
+    const type = types[Math.floor(Math.random() * types.length)];
+    enemies.spawn(type, new THREE.Vector3(
+        (Math.random() - 0.5) * 20,
+        (Math.random() - 0.5) * 20,
+        -150 //spawn at the end of the tunnel
+    ));
+}, 4000);
+
 /// --- GAME LOOP ---
 function animate() {
     requestAnimationFrame(animate);
@@ -102,7 +119,20 @@ function animate() {
 
     // update the tunnel animation
     wormhole.update();
+
+    enemies.update(camera, now);
     projectiles.update();
+    
+    // Check if player projectiles hit enemies
+    projectiles.bolts.forEach((bolt, bIdx) => {
+        enemies.enemies.forEach((enemy, eIdx) => {
+            if (bolt.position.distanceTo(enemy.position) < 2) {
+                enemies.removeEnemy(enemy, eIdx);
+                scene.remove(bolt);
+                projectiles.bolts.splice(bIdx, 1);
+            }
+        });
+    });
     
     renderer.render(scene, camera);
 }

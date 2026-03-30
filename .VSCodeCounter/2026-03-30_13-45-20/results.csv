@@ -1,0 +1,11 @@
+"filename", "language", "JavaScript", "JSON", "HTML", "PostCSS", "comment", "blank", "total"
+"d:\zero-point-wasp\css\style.css", "PostCSS", 0, 0, 0, 105, 1, 18, 124
+"d:\zero-point-wasp\index.html", "HTML", 0, 0, 32, 0, 3, 3, 38
+"d:\zero-point-wasp\js\Enemies.js", "JavaScript", 0, 0, 0, 0, 0, 1, 1
+"d:\zero-point-wasp\js\Player.js", "JavaScript", 0, 0, 0, 0, 0, 1, 1
+"d:\zero-point-wasp\js\Projectiles.js", "JavaScript", 38, 0, 0, 0, 8, 9, 55
+"d:\zero-point-wasp\js\World.js", "JavaScript", 30, 0, 0, 0, 11, 12, 53
+"d:\zero-point-wasp\js\main.js", "JavaScript", 86, 0, 0, 0, 13, 27, 126
+"d:\zero-point-wasp\package-lock.json", "JSON", 0, 913, 0, 0, 0, 1, 914
+"d:\zero-point-wasp\package.json", "JSON", 0, 20, 0, 0, 0, 1, 21
+"Total", "-", 154, 933, 32, 105, 36, 73, 1333
