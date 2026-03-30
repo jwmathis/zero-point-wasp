@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Wormhole } from './World.js';
+import { ProjectileSystem } from './Projectiles.js';    
 
 /// Global state for the Wasp protocol
 const gameState = {
@@ -59,13 +60,26 @@ starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVerti
 const stars = new THREE.Points(starGeometry, starMaterial);
 scene.add(stars);
 
+
+/// --- PROJECTILES ---
+const projectiles = new ProjectileSystem(scene);
+// Mouse CLick Listener
+window.addEventListener('mousedown', () => {
+    if (gameState.ammo > 0) {
+        projectiles.fire(camera);
+        gameState.ammo--; //Deplete an ammo segment
+        updateHUD();
+    }
+    
+});
+
 /// --- GAME LOOP ---
 function animate() {
     requestAnimationFrame(animate);
     
     // update the tunnel animation
     wormhole.update();
-
+    projectiles.update();
     updateHUD();
     
     renderer.render(scene, camera);
