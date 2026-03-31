@@ -36,21 +36,21 @@ export class EnemySystem {
         // --- STRIKER ---
         const strikerTex = this.textureLoader.load('./assets/striker/Textures/Striker_Purple.png');
         this.loader.load('./assets/striker/Striker.gltf', (gltf) => {
-            this.strikerModel = this.prepareModel(gltf.scene, strikerTex, 1.5);
+            this.strikerModel = this.prepareModel(gltf.scene, strikerTex, 1.2);
             console.log("Striker Ready");
         });
 
         // --- SEEKER ---
         const seekerTex = this.textureLoader.load('./assets/seeker/Textures/Insurgent_Red.png');
         this.loader.load('./assets/seeker/Insurgent.gltf', (gltf) => {
-            this.seekerModel = this.prepareModel(gltf.scene, seekerTex, 1.2);
+            this.seekerModel = this.prepareModel(gltf.scene, seekerTex, 0.8);
             console.log("Seeker Ready");
         });
 
         // --- MINE ---
         const mineTex = this.textureLoader.load('./assets/mine/Textures/material_1_baseColor.png');
         this.loader.load('./assets/mine/crate.gltf', (gltf) => {
-            this.mineModel = this.prepareModel(gltf.scene, mineTex, 2.0);
+            this.mineModel = this.prepareModel(gltf.scene, mineTex, 1.5);
             console.log("Mine Ready");
         });
     }
@@ -87,6 +87,9 @@ export class EnemySystem {
             mesh = this.seekerModel.clone();
         } else if (type === 'mine' && this.mineModel) {
             mesh = this.mineModel.clone();
+            // Add a random scale variation between 80% and 120% of the base size
+            const randomScale = 0.8 + Math.random() * 0.4;
+            mesh.scale.multiplyScalar(randomScale);
         } else {
             // Fallback to geometric wireframes if models aren't ready
             const material = new THREE.MeshBasicMaterial({
@@ -113,10 +116,21 @@ export class EnemySystem {
                     
                     window.gameState.score += points;
                     
+                    
+                    // Trigger Explosion
+                    const enemyColor = enemy.userData.type === 'striker' ? 0xff00ff : 0x00ffff;
+                    this.createExplosion(enemy.position, enemyColor);
+                    
+                    // Brief "hit-stop" effect
+                    const originalSpeed = this.moveSpeed;
+                    this.moveSpeed = 0.05; // Slow down
+                    setTimeout(() => { this.moveSpeed = 0.5; }, 50); // Snap back after 50ms
+                    
                     // 2. Trigger the Floating Text
                     if (window.createScorePopup) {
                         window.createScorePopup(enemy.position, points);
                     }
+
 
                     // 3. Cleanup and Feedback
                     this.removeEnemy(enemy, eIdx);
@@ -129,6 +143,36 @@ export class EnemySystem {
                 }
             });
         });
+    }
+
+    createExplosion(position, color = 0xff0055) {
+        const particleCount = 20;
+        const geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+        const material = new THREE.MeshBasicMaterial({ color: color });
+
+        for (let i = 0; i < particleCount; i++) {
+            const particle = new THREE.Mesh(geometry, material);
+            
+            // Start at enemy position
+            particle.position.copy(position);
+
+            // Give it a random velocity vector
+            particle.userData.velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.5,
+                (Math.random() - 0.5) * 0.5,
+                (Math.random() - 0.5) * 0.5
+            );
+
+            // Life management
+            particle.userData.alive = true;
+            particle.userData.timer = 0;
+
+            this.scene.add(particle);
+            
+            // We need a way to track these to update them
+            if (!this.particles) this.particles = [];
+            this.particles.push(particle);
+        }
     }
 
     update(camera, now) {
@@ -164,6 +208,24 @@ export class EnemySystem {
                 this.removeEnemy(enemy, index);
             }
             if (enemy.position.z > 10) this.removeEnemy(enemy, index);
+
+            if (this.particles) {
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    p.position.add(p.userData.velocity);
+                    p.userData.timer++;
+
+                    // Shrink them over time
+                    p.scale.multiplyScalar(0.95);
+
+                    // Remove after 30 frames or when too small
+                    if (p.userData.timer > 30 || p.scale.x < 0.01) {
+                        this.scene.remove(p);
+                        this.particles.splice(i, 1);
+                    }
+                }
+            }
+
         });
 
         // Update Enemy Bullets
