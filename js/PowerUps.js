@@ -7,14 +7,14 @@ export class PowerUpSystem {
 
         //Geometries for different types
         this.geos = {
-            ammo: new THREE.TorusGeometry(0.5, 0.2, 8, 24),
-            health: new THREE.IcosahedronGeometry(0.7, 0)
+            health: new THREE.TorusGeometry(0.5, 0.2, 8, 24),
+            ammo: new THREE.IcosahedronGeometry(0.7, 0)
         };
 
         // Materials with a neon glow
         this.mats = {
-            ammo: new THREE.MeshBasicMaterial({ color: 0x00FFFF, wireframe: true }),
-            health: new THREE.MeshBasicMaterial({ color: 0xFF0055, wireframe: true }),
+            ammo: new THREE.MeshBasicMaterial({ color: 0xFF0055, wireframe: true }),
+            health: new THREE.MeshBasicMaterial({ color: 0x00FFFF, wireframe: true }),
         };
 
         // Spawn every 10 seconds
