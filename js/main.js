@@ -19,7 +19,7 @@ const gameState = {
     isPaused: false,
     hasStarted: false,
     isDead: false,
-    keys: { w: false, a: false, s: false, d: false },
+    keys: { w: false, a: false, s: false, d: false, t: false},
     moveSpeed: 0.5,
     score: 0,
     multiplier: 1,
@@ -138,6 +138,7 @@ document.getElementById('restart-button').addEventListener('click', () => window
 
 window.addEventListener('keydown', (e) => {
     const key = e.key.toLowerCase();
+
     // Handle Pause
     if (key === 'p' && gameState.hasStarted) {
         gameState.isPaused = !gameState.isPaused;

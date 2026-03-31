@@ -12,10 +12,21 @@ export class Player {
         this.hazeEl = hazeElement;
         
         // 1. MODEL & ANIMATION PROPERTIES
+
+        //Ship library
+        this.ships = [
+            { time: 0.74, scale: 100, y: -1.5, name: "Main Shuttle" },
+            { time: 3.15, scale: 50, y: -1.2, name: "X-Wing" },
+            { time: 5.77, scale: 30, y: -0.7, name: "Hyper Shuttle" },
+            { time: 8.26, scale: 100, y: -1.5, name: "Jet" },
+        ]
+        this.currentShipIndex = 1; //Default to X-wing (Index 1)
+        this.canSwitchShip = true;
+
         this.mesh = null; // This will hold the Pivot Group
         this.mixer = null;
         this.clock = new THREE.Clock();
-        this.targetTime = 4.3; // Your chosen ship design timestamp
+        
 
         // 2. FLIGHT CONSTRAINTS (Original Wasp Settings)
         this.limit = 10;
@@ -27,63 +38,80 @@ export class Player {
         this.loadModel();
     }
 
+    applyShipStats() {
+        if (!this.mesh || !this.mixer) return;
+
+        const stats = this.ships[this.currentShipIndex];
+
+        // Set animation time
+        this.mixer.setTime(stats.time);
+        this.mixer.update(0);
+
+        // Adjust position and scale based on the specific ship
+        this.mesh.position.set(0, stats.y, -3.5);
+
+        //Calculate scale for each model
+        this.mesh.updateMatrixWorld(true)
+        const box = new THREE.Box3().setFromObject(this.mesh.children[0]); // Measure the inner ship
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z) || 1;
+        const scaleFactor = stats.scale / maxDim;
+        this.mesh.scale.set(scaleFactor, scaleFactor, scaleFactor);
+
+        console.log(`Switched to: ${stats.name} (Time: ${stats.time})`);
+        
+    }
+
     loadModel() {
         const loader = new GLTFLoader();
-        
         loader.load('./assets/star_sparrow.glb', (gltf) => {
             const shipSource = gltf.scene;
 
-            // --- A. ANIMATION SETUP ---
-            if (gltf.animations && gltf.animations.length > 0) {
-                this.mixer = new THREE.AnimationMixer(shipSource);
-                const action = this.mixer.clipAction(gltf.animations[0]);
-                action.play();
-                this.mixer.setTime(this.targetTime);
-                this.mixer.update(0); // Force bone calculation immediately
-            }
+            // Setup Mixer
+            this.mixer = new THREE.AnimationMixer(shipSource);
+            const action = this.mixer.clipAction(gltf.animations[0]);
+            action.play();
 
-            // --- B. MEASURE & CENTER ---
+            // Create Pivot
+            const pivot = new THREE.Group();
+            
+            // Initial Centering of the raw geometry
             shipSource.updateMatrixWorld(true);
             const box = new THREE.Box3().setFromObject(shipSource);
             const center = box.getCenter(new THREE.Vector3());
-            const size = box.getSize(new THREE.Vector3());
-
-            // --- C. PIVOT & ORIENTATION ---
             shipSource.position.set(-center.x, -center.y, -center.z);
             
-            const pivot = new THREE.Group();
             pivot.add(shipSource);
-            pivot.rotation.y = Math.PI; // Face forward
-
-            // --- D. SCALE & HIERARCHY ---
-            const maxDim = Math.max(size.x, size.y, size.z) || 1;
-            const scaleFactor = 30 / maxDim; // Adjusted scale to fit cockpit view
-            pivot.scale.set(scaleFactor, scaleFactor, scaleFactor);
-
-            // Position the ship slightly in front of and below the camera
-            pivot.position.set(0, -1.5, -2.5); 
+            pivot.rotation.y = Math.PI; 
             
             this.mesh = pivot;
-            
-            // Link the ship to the camera so it follows the pilot
+            //Link camera to ship
             this.camera.add(this.mesh); 
-            
-            // Safety: Ensure ship doesn't vanish
-            shipSource.traverse((child) => {
-                if (child.isMesh) child.frustumCulled = false;
-            });
 
-            console.log("Star Sparrow Integrated with Flight Systems.");
+            // Apply the default ship stats
+            this.applyShipStats();
+
+            shipSource.traverse(child => { if(child.isMesh) child.frustumCulled = false; });
         });
     }
 
     update(keys, gameState, updateHUDCallback) {
-        // 1. UPDATE ANIMATION (Keeps skinned mesh visible)
-        if (this.mixer) {
-            this.mixer.setTime(this.targetTime);
+
+        if (!this.mesh) return;
+
+        // --- DEVELOPMENT TOGGLE: SHIP SWITCHING ---
+        // You can comment this block out for the final game
+        if (keys.t) {
+            if (this.canSwitchShip) {
+                this.currentShipIndex = (this.currentShipIndex + 1) % this.ships.length;
+                this.applyShipStats();
+                this.canSwitchShip = false; // Lock switching until key is released
+            }
+        } else {
+            this.canSwitchShip = true; // Reset lock when key is up
         }
 
-        // 2. MOVE CAMERA (Original Wasp Logic)
+        // 2. MOVE CAMERA
         if (keys.a || keys.ArrowLeft)  this.camera.position.x -= this.moveSpeed;
         if (keys.d || keys.ArrowRight) this.camera.position.x += this.moveSpeed;
         if (keys.w || keys.ArrowUp)    this.camera.position.y += this.moveSpeed;
