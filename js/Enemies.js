@@ -150,9 +150,9 @@ export class EnemySystem {
             if (enemy.userData.type === 'seeker') {
                 const dir = new THREE.Vector3().subVectors(camera.position, enemy.position).normalize();
                 enemy.position.addScaledVector(dir, 0.25);
-            } else if (enemy.userData.type === 'striker' && dist < 50) {
-                if (now - enemy.userData.lastShot > 2000) {
-                    this.fireAtPlayer(enemy, camera);
+            } else if (enemy.userData.type === 'striker' && dist < 100) { // Distance enemy is from player before firing
+                if (now - enemy.userData.lastShot > 3000) { //3 seconds between bursts
+                    this.fireBurst(enemy, camera);
                     enemy.userData.lastShot = now;
                 }
             }
@@ -178,11 +178,46 @@ export class EnemySystem {
     }
 
     fireAtPlayer(enemy, camera) {
-        const bullet = new THREE.Mesh(new THREE.SphereGeometry(0.3), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+        const bullet = new THREE.Mesh(new THREE.SphereGeometry(0.3), new THREE.MeshBasicMaterial({ color: 0xFF0000 }));
         bullet.position.copy(enemy.position);
         bullet.userData.dir = new THREE.Vector3().subVectors(camera.position, enemy.position).normalize();
         this.scene.add(bullet);
         this.enemyProjectiles.push(bullet);
+    }
+
+    fireAtPlayer2(enemy, camera) {
+        // Create a small red glowing sphere for the enemy bolt
+        const bulletGeo = new THREE.SphereGeometry(0.4, 8, 8);
+        const bulletMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
+        const bullet = new THREE.Mesh(bulletGeo, bulletMat);
+        
+        bullet.position.copy(enemy.position);
+
+        // Calculate direction to player
+        const dir = new THREE.Vector3().subVectors(camera.position, enemy.position).normalize();
+        
+        // OPTIONAL: Add slight randomness so shots aren't 100% perfect
+        dir.x += (Math.random() - 0.5) * 0.05;
+        dir.y += (Math.random() - 0.5) * 0.05;
+
+        bullet.userData.dir = dir;
+        this.scene.add(bullet);
+        this.enemyProjectiles.push(bullet);
+    }
+
+
+    fireBurst(enemy, camera) {
+        const shotCount = 3; // Number of shots in the burst
+        const delayBetweenShots = 150; // Milliseconds between each shot
+
+        for (let i = 0; i < shotCount; i++) {
+            setTimeout(() => {
+                // Check if the enemy still exists before firing (prevents errors if destroyed mid-burst)
+                if (this.enemies.includes(enemy)) {
+                    this.fireAtPlayer(enemy, camera);
+                }
+            }, i * delayBetweenShots);
+        }
     }
 
     damagePlayer(source) {
