@@ -212,7 +212,7 @@ function animate() {
     }
 
     // UPDATE PHASE
-    wormhole.update(1.2);
+    wormhole.update(gameState);
     updateStars();
     player.update(gameState.keys, gameState, updateHUD);
     powerUps.update(camera, gameState, updateHUD);
