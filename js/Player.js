@@ -11,115 +11,119 @@ export class Player {
         this.camera = camera;
         this.hazeEl = hazeElement;
         
-        // 1. MODEL & ANIMATION PROPERTIES
-
-        //Ship library
+        // 1. SHIP CONFIGURATION
         this.ships = [
-            { time: 0.74, scale: 100, y: -1.5, name: "Main Shuttle" },
-            { time: 3.15, scale: 50, y: -1.2, name: "X-Wing" },
-            { time: 5.77, scale: 30, y: -0.7, name: "Hyper Shuttle" },
-            { time: 8.26, scale: 100, y: -1.5, name: "Jet" },
-        ]
-        this.currentShipIndex = 1; //Default to X-wing (Index 1)
+            { time: 0.74, scale: 1.5, y: -0.8, name: "Main Shuttle" },
+            { time: 3.15, scale: 1.8, y: -0.6, name: "X-Wing" },
+            { time: 5.77, scale: 1.2, y: -0.5, name: "Hyper Shuttle" },
+            { time: 8.26, scale: 2.0, y: -1.0, name: "Jet" },
+        ];
+        
+        this.currentShipIndex = 1; // Default to X-wing
         this.canSwitchShip = true;
 
-        this.mesh = null; // This will hold the Pivot Group
+        this.mesh = null; // The Pivot Group
         this.mixer = null;
-        this.clock = new THREE.Clock();
         
+        // 2. FLIGHT CONSTRAINTS
+        this.limit = 12;      // How far the ship can fly from center
+        this.buffer = 1.5;     // Boundary for the "scrape" effect
+        this.moveSpeed = 0.25;
+        this.rollIntensity = 0.05;
 
-        // 2. FLIGHT CONSTRAINTS (Original Wasp Settings)
-        this.limit = 10;
-        this.buffer = 0.2;
-        this.moveSpeed = 0.5;
-        this.rollIntensity = 0.02;
-
-        // 3. INITIALIZE MODEL
+        // 3. INITIALIZE
         this.loadModel();
     }
 
+    /**
+     * Updates ship scale and animation state based on current selection
+     */
     applyShipStats() {
         if (!this.mesh || !this.mixer) return;
 
         const stats = this.ships[this.currentShipIndex];
 
-        // Set animation time
+        // Seek the animation mixer to the specific frame for this ship model
         this.mixer.setTime(stats.time);
-        this.mixer.update(0);
-
-        // Adjust position and scale based on the specific ship
-        this.mesh.position.set(0, stats.y, -3.5);
-
-        //Calculate scale for each model
-        this.mesh.updateMatrixWorld(true)
-        const box = new THREE.Box3().setFromObject(this.mesh.children[0]); // Measure the inner ship
-        const size = box.getSize(new THREE.Vector3());
-        const maxDim = Math.max(size.x, size.y, size.z) || 1;
-        const scaleFactor = stats.scale / maxDim;
-        this.mesh.scale.set(scaleFactor, scaleFactor, scaleFactor);
-
-        console.log(`Switched to: ${stats.name} (Time: ${stats.time})`);
         
+        // Adjust relative position and scale
+        this.mesh.position.set(0, stats.y, -4);
+        this.mesh.scale.set(stats.scale, stats.scale, stats.scale);
+
+        console.log(`Neural Link Synced: ${stats.name}`);
     }
 
     loadModel() {
         const loader = new GLTFLoader();
+
         loader.load('./assets/star_sparrow.glb', (gltf) => {
             const shipSource = gltf.scene;
 
-            // Setup Mixer
+            // Setup Animation Mixer
             this.mixer = new THREE.AnimationMixer(shipSource);
-            const action = this.mixer.clipAction(gltf.animations[0]);
-            action.play();
+            if (gltf.animations.length > 0) {
+                const action = this.mixer.clipAction(gltf.animations[0]);
+                action.play();
+            }
 
-            // Create Pivot
+            // Create Pivot (allows us to rotate/center the ship independently of its local coordinates)
             const pivot = new THREE.Group();
             
-            // Initial Centering of the raw geometry
+            // Center the geometry
             shipSource.updateMatrixWorld(true);
             const box = new THREE.Box3().setFromObject(shipSource);
             const center = box.getCenter(new THREE.Vector3());
             shipSource.position.set(-center.x, -center.y, -center.z);
             
             pivot.add(shipSource);
-            pivot.rotation.y = Math.PI; 
+            pivot.rotation.y = Math.PI; // Face forward
             
             this.mesh = pivot;
-            //Link camera to ship
-            this.camera.add(this.mesh); 
+            this.camera.add(this.mesh); // Attach ship to camera for cockpit-style movement
 
-            // Apply the default ship stats
+            // Apply Material Enhancements
+            shipSource.traverse(child => { 
+                if (child.isMesh) {
+                    child.frustumCulled = false; 
+
+                    child.material.metalness = 0.8; // Lowered from 0.8 to make it less mirror-like
+                    child.material.roughness = 0.4; // Increased from 0.2 to catch more light
+                    
+                    // child.material.emissive = new THREE.Color(0x00ffff);
+                    // child.material.emissiveIntensity = 0.6; // Boosted so you see the neon glow
+                    
+                    // This ensures the material handles the light correctly
+                    child.material.needsUpdate = true;
+                }
+            });
+
             this.applyShipStats();
-
-            shipSource.traverse(child => { if(child.isMesh) child.frustumCulled = false; });
         });
     }
 
     update(keys, gameState, updateHUDCallback) {
-
         if (!this.mesh) return;
 
-        // --- DEVELOPMENT TOGGLE: SHIP SWITCHING ---
-        // You can comment this block out for the final game
+        // --- DEV TOOL: SHIP SWITCHING (T-KEY) ---
         if (keys.t) {
             if (this.canSwitchShip) {
                 this.currentShipIndex = (this.currentShipIndex + 1) % this.ships.length;
                 this.applyShipStats();
-                this.canSwitchShip = false; // Lock switching until key is released
+                this.canSwitchShip = false; 
             }
         } else {
-            this.canSwitchShip = true; // Reset lock when key is up
+            this.canSwitchShip = true; 
         }
 
-        // 2. MOVE CAMERA
-        if (keys.a || keys.ArrowLeft)  this.camera.position.x -= this.moveSpeed;
-        if (keys.d || keys.ArrowRight) this.camera.position.x += this.moveSpeed;
-        if (keys.w || keys.ArrowUp)    this.camera.position.y += this.moveSpeed;
-        if (keys.s || keys.ArrowDown)  this.camera.position.y -= this.moveSpeed;
+        // 1. SHIP MOVEMENT
+        if (keys.a) this.camera.position.x -= this.moveSpeed;
+        if (keys.d) this.camera.position.x += this.moveSpeed;
+        if (keys.w) this.camera.position.y += this.moveSpeed;
+        if (keys.s) this.camera.position.y -= this.moveSpeed;
 
-        // 3. BOUNDARY & SCRAPE CHECK
-        const isClipping = Math.abs(this.camera.position.x) > (this.limit - this.buffer) || 
-                           Math.abs(this.camera.position.y) > (this.limit - this.buffer);
+        // 2. BOUNDARY & DAMAGE CHECK
+        const distFromCenter = Math.sqrt(this.camera.position.x ** 2 + this.camera.position.y ** 2);
+        const isClipping = distFromCenter > (this.limit - this.buffer);
 
         if (isClipping) {
             this.triggerScrapeEffect(gameState, updateHUDCallback);
@@ -127,31 +131,29 @@ export class Player {
             this.hazeEl.classList.remove('active');
         }
 
-        // 4. APPLY CONSTRAINTS
+        // 3. APPLY HARD CONSTRAINTS
         this.camera.position.x = THREE.MathUtils.clamp(this.camera.position.x, -this.limit, this.limit);
         this.camera.position.y = THREE.MathUtils.clamp(this.camera.position.y, -this.limit, this.limit);
         
-        // 5. AESTHETIC ROLL & TILT
-        // Tilts the camera for banking feel
-        this.camera.rotation.z = -this.camera.position.x * this.rollIntensity;
+        // 4. AESTHETIC TILT (Banking)
+        // Camera banks slightly as you move
+        this.camera.rotation.z = -this.camera.position.x * 0.02;
         
-        // If ship is loaded, add a slight independent banking to the mesh
-        if (this.mesh) {
-            this.mesh.rotation.z = THREE.MathUtils.lerp(this.mesh.rotation.z, (keys.a ? 0.3 : keys.d ? -0.3 : 0), 0.1);
-        }
+        // Mesh banks heavily based on key input for better "weight"
+        const targetRoll = keys.a ? 0.4 : (keys.d ? -0.4 : 0);
+        this.mesh.rotation.z = THREE.MathUtils.lerp(this.mesh.rotation.z, targetRoll, 0.1);
     }
 
     triggerScrapeEffect(gameState, updateHUDCallback) {
-        this.hazeEl.style.display = 'block';
         this.hazeEl.classList.add('active');
 
-        // Camera Shake
-        this.camera.position.x += (Math.random() - 0.5) * 0.15;
-        this.camera.position.y += (Math.random() - 0.5) * 0.15;
+        // Physical Feedback: Camera Vibration
+        this.camera.position.x += (Math.random() - 0.5) * 0.2;
+        this.camera.position.y += (Math.random() - 0.5) * 0.2;
 
-        // Damage Logic
+        // Mechanical Penalty: Health drain and score reset
         gameState.multiplier = 1;
-        gameState.health -= 0.2;
+        gameState.health -= 0.15;
         updateHUDCallback();
     }
 }

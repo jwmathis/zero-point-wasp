@@ -41,13 +41,31 @@ const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.1, 1000);
 scene.add(camera);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
-const light = new THREE.AmbientLight(0xffffff, 1);
-
-scene.background = new THREE.Color(0x111111);
-scene.fog = new THREE.FogExp2(0x000000, 0.015);
+const light = new THREE.AmbientLight(0xffffff, 0.5); // Base light for non-metallic parts
 scene.add(light);
+// Directional Light is the "Sun"
+const sunLight = new THREE.DirectionalLight(0xffffff, 2.5);
+sunLight.position.set(5, 10, 7.5);
+scene.add(sunLight);
+
+const playerLight = new THREE.PointLight(0x00ffff, 10, 50); 
+camera.add(playerLight); 
+playerLight.position.set(0, 0, -3); // Moved to -3 so it's right in front of the ship
+
+const headlight = new THREE.PointLight(0xffffff, 5, 20); 
+camera.add(headlight);
+headlight.position.set(0, 0, -2); // Directly illuminating the hull
+
+const pmremGenerator = new THREE.PMREMGenerator(renderer);
+pmremGenerator.compileEquirectangularShader();
+// Use a neutral scene for reflections so the metal actually "shines"
+scene.environment = pmremGenerator.fromScene(new THREE.Scene()).texture;
+
+scene.background = new THREE.Color(0x050505);
+scene.fog = new THREE.FogExp2(0x000000, 0.015);
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
+
 
 // --- MODULE INITIALIZATION ---
 const wormhole = new Wormhole(scene);
@@ -164,8 +182,8 @@ window.addEventListener('mousedown', (e) => {
         updateHUD();
         
         // Weapon flash effect
-        light.intensity = 4.0;
-        setTimeout(() => { light.intensity = 1.0; }, 50);
+        light.intensity = 5.0;
+        setTimeout(() => { light.intensity = 1.5; }, 100);
     }
 });
 
