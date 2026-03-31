@@ -9,6 +9,7 @@ canvas {
     left: 0;
     /* Lower the z-index so the body shadow or UI can sit on top if needed */
     z-index: 1; 
+    cursor: none;
 }
 
 .overlay {
@@ -60,6 +61,7 @@ button:hover {
     font-family: 'Share Tech Mono', monospace;
     letter-spacing: 2px;
     pointer-events: none;
+    cursor: none;
 }
 
 .stat-container { margin-bottom: 20px; }
@@ -116,13 +118,23 @@ label {
 
 #crosshair {
     position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    top: 50%; /* Lock to center */
+    left: 50%; /* Lock to center */
     width: 40px;
     height: 40px;
-    pointer-events: none; /*Don't block mouse clicks*/
+    border: 2px solid #00ffff;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 100;
 }
+
+#crosshair::before, #crosshair::after {
+    content: '';
+    position: absolute;
+    background: #00ffff;
+}
+#crosshair::before { width: 10px; height: 2px; top: 14px; left: 10px; }
 
 .line {
     position: absolute;

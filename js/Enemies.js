@@ -36,14 +36,14 @@ export class EnemySystem {
         // --- STRIKER ---
         const strikerTex = this.textureLoader.load('./assets/striker/Textures/Striker_Purple.png');
         this.loader.load('./assets/striker/Striker.gltf', (gltf) => {
-            this.strikerModel = this.prepareModel(gltf.scene, strikerTex, 1.2);
+            this.strikerModel = this.prepareModel(gltf.scene, strikerTex, 0.8);
             console.log("Striker Ready");
         });
 
         // --- SEEKER ---
         const seekerTex = this.textureLoader.load('./assets/seeker/Textures/Insurgent_Red.png');
         this.loader.load('./assets/seeker/Insurgent.gltf', (gltf) => {
-            this.seekerModel = this.prepareModel(gltf.scene, seekerTex, 0.8);
+            this.seekerModel = this.prepareModel(gltf.scene, seekerTex, 0.5);
             console.log("Seeker Ready");
         });
 
@@ -125,7 +125,7 @@ export class EnemySystem {
                     const originalSpeed = this.moveSpeed;
                     this.moveSpeed = 0.05; // Slow down
                     setTimeout(() => { this.moveSpeed = 0.5; }, 50); // Snap back after 50ms
-                    
+
                     // 2. Trigger the Floating Text
                     if (window.createScorePopup) {
                         window.createScorePopup(enemy.position, points);

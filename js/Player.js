@@ -47,7 +47,7 @@ export class Player {
         this.mixer.setTime(stats.time);
         
         // Adjust relative position and scale
-        this.mesh.position.set(0, stats.y, -4);
+        this.mesh.position.set(0, -3.5, -4);
         this.mesh.scale.set(stats.scale, stats.scale, stats.scale);
 
         console.log(`Neural Link Synced: ${stats.name}`);

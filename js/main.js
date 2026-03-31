@@ -4,6 +4,7 @@
  * Part of the "Zero-Point: The Wasp Protocol" Capstone Project.
  */
 import * as THREE from 'three';
+
 import { Wormhole } from './World.js';
 import { ProjectileSystem } from './Projectiles.js';    
 import { EnemySystem } from './Enemies.js';
@@ -151,6 +152,8 @@ window.createScorePopup = createScorePopup;
 // --- INPUT HANDLERS ---
 
 document.getElementById('start-button').addEventListener('click', () => {
+    renderer.domElement.requestPointerLock();
+
     startScreen.style.display = 'none';
     setTimeout(() => { gameState.hasStarted = true; }, 100);
 });
@@ -181,6 +184,8 @@ window.addEventListener('mousedown', (e) => {
 
     if (gameState.ammo > 0) {
         projectiles.fire(camera);
+        camera.position.z += 0.1; // Slight kickback
+        setTimeout(() => { camera.position.z -= 0.1; }, 50);
         gameState.ammo--;
         updateHUD();
         
@@ -237,13 +242,38 @@ window.addEventListener('resize', () => {
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
+const crosshair = document.getElementById('crosshair');
 // Mouse-based camera look (Neural Link feel)
 window.addEventListener('mousemove', (e) => {
-    if (gameState.isPaused || gameState.isDead) return;
-    const x = (e.clientX / window.innerWidth) * 2 - 1;
-    const y = -(e.clientY / window.innerHeight) * 2 + 1;
+    if (gameState.isPaused || gameState.isDead || !gameState.hasStarted) {
+        crosshair.style.display = 'none';
+        return;
+    }
+
+    if (document.pointerLockElement === renderer.domElement) {
+        const sensitivity = 0.002;
+        camera.rotation.y -= e.movementX * sensitivity;
+        camera.rotation.x -= e.movementY * sensitivity;
+
+        // Optional: Clamp the vertical look so they can't flip the camera upside down
+        camera.rotation.x = THREE.MathUtils.clamp(camera.rotation.x, -0.5, 0.5);
+    }
+    crosshair.style.display = 'block';
+    crosshair.style.left = `${e.clientX}px`;
+    crosshair.style.top = `${e.clientY}px`;
+
+    // const x = (e.clientX / window.innerWidth) * 2 - 1;
+    // const y = -(e.clientY / window.innerHeight) * 2 + 1;
     
-    camera.rotation.y = -x * 0.3;
-    camera.rotation.x = y * 0.3;
-    camera.rotation.z = -x * 0.1; // Banking effect for the mouse
+    // camera.rotation.y = -x * 0.3;
+    // camera.rotation.x = y * 0.3;
+    // camera.rotation.z = -x * 0.1; // Banking effect for the mouse
+});
+
+document.addEventListener('pointerlockchange', () => {
+    if (document.pointerLockElement !== renderer.domElement && gameState.hasStarted) {
+        // Pointer was unlocked (user hit Esc)
+        gameState.isPaused = true;
+        pauseScreen.style.display = 'flex';
+    }
 });
