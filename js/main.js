@@ -39,6 +39,7 @@ const gameOverScreen = document.getElementById('game-over-screen');
 // --- SCENE SETUP ---
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.1, 1000);
+scene.add(camera);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 const light = new THREE.AmbientLight(0xffffff, 1);
 
@@ -52,7 +53,7 @@ document.body.appendChild(renderer.domElement);
 const wormhole = new Wormhole(scene);
 const projectiles = new ProjectileSystem(scene);
 const enemies = new EnemySystem(scene);
-const player = new Player(camera, hazeEl); // The Wasp Pilot
+const player = new Player(scene, camera, hazeEl); // The Wasp Pilot
 
 // Set initial pilot orientation
 camera.position.set(0, 0, 5);
