@@ -8,6 +8,8 @@ import { Wormhole } from './World.js';
 import { ProjectileSystem } from './Projectiles.js';    
 import { EnemySystem } from './Enemies.js';
 import { Player } from './Player.js';
+import { PowerUpSystem } from './PowerUps.js';
+
 
 // --- INITIAL GAME STATE ---
 const gameState = {
@@ -72,6 +74,7 @@ const wormhole = new Wormhole(scene);
 const projectiles = new ProjectileSystem(scene);
 const enemies = new EnemySystem(scene);
 const player = new Player(scene, camera, hazeEl); // The Wasp Pilot
+const powerUps = new PowerUpSystem(scene);
 
 // Set initial pilot orientation
 camera.position.set(0, 0, 5);
@@ -206,7 +209,8 @@ function animate() {
     // UPDATE PHASE
     wormhole.update(1.2);
     updateStars();
-    player.update(gameState.keys, gameState, updateHUD); // Logic now handled by Player class
+    player.update(gameState.keys, gameState, updateHUD);
+    powerUps.update(camera, gameState, updateHUD);
     checkGameOver();
     enemies.update(camera, now);
     projectiles.update();
