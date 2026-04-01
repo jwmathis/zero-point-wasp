@@ -72,6 +72,7 @@ export class PowerUpSystem {
             setTimeout(() => { healHaze.style.display = 'none'; }, 1000);
         }
         updateHUD();
+        if (sfx.powerup) sfx.powerup.play();
     }
 
     remove(p, index) {

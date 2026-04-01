@@ -1,24 +1,88 @@
 /* CSS to handle the HUD */
 body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', Courier, monospace; box-sizing: border-box; }
 
-canvas {
-    display: block;
-    position: absolute;
-    top: 0; left: 0;
-    z-index: 1; 
-    cursor: none;
+canvas { display: block; position: absolute; top: 0; left: 0; z-index: 1; cursor: none; }
+#splash-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+    background: radial-gradient(circle, #0a0a0a 0%, #000 100%);
+    display: flex; justify-content: center; align-items: center; z-index: 9999; transition: opacity 1.0s ease;
 }
 
+/* Cinematic Glitch Effect */
+.glitch {
+    font-size: 5rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    position: relative;
+    text-shadow: 0.05em 0 0 #00fffc, -0.03em -0.04em 0 #fc00ff,
+                 0.025em 0.04em 0 #fffc00;
+    animation: glitch 725ms infinite;
+}
+
+@keyframes glitch {
+    0% { text-shadow: 0.05em 0 0 #00fffc, -0.03em -0.04em 0 #fc00ff, 0.025em 0.04em 0 #fffc00; }
+    14% { text-shadow: 0.05em 0 0 #00fffc, -0.03em -0.04em 0 #fc00ff, 0.025em 0.04em 0 #fffc00; }
+    15% { text-shadow: -0.05em -0.025em 0 #00fffc, 0.025em 0.035em 0 #fc00ff, -0.05em -0.05em 0 #fffc00; }
+    49% { text-shadow: -0.05em -0.025em 0 #00fffc, 0.025em 0.035em 0 #fc00ff, -0.05em -0.05em 0 #fffc00; }
+    50% { text-shadow: 0.03em 0.05em 0 #00fffc, 0.05em 0 0 #fc00ff, 0 -0.05em 0 #fffc00; }
+    99% { text-shadow: 0.03em 0.05em 0 #00fffc, 0.05em 0 0 #fc00ff, 0 -0.05em 0 #fffc00; }
+    100% { text-shadow: -0.025em 0 0 #00fffc, -0.025em -0.025em 0 #fc00ff, -0.025em -0.05em 0 #fffc00; }
+}
+
+#splash-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: #050505; display: flex;
+    justify-content: center; align-items: center; z-index: 10000; transition: opacity 1s ease-out;
+}
+
+.splash-content { text-align: center; color: #00ffff; font-family: 'Courier New', Courier, monospace; text-shadow: 0 0 10px #00ffff; }
+
+#initialize-btn {
+    background: transparent;
+    border: 1px solid #00ffff;
+    color: #00ffff;
+    padding: 15px 30px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: all 0.3s;
+}
+
+#initialize-btn:hover { background: #00ffff; color: #000; box-shadow: 0 0 20px #00ffff; }
+
+#splash-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle, #0a0a0a 0%, #000 100%);
+    display: flex; justify-content: center; align-items: center; z-index: 9999;
+    transition: opacity 1.0s ease;
+}
+
+/* Cinematic Glitch Effect */
+.glitch {
+    font-size: 5rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    position: relative;
+    text-shadow: 0.05em 0 0 #00fffc, -0.03em -0.04em 0 #fc00ff,
+                 0.025em 0.04em 0 #fffc00;
+    animation: glitch 725ms infinite;
+}
+
+@keyframes glitch {
+    0% { text-shadow: 0.05em 0 0 #00fffc, -0.03em -0.04em 0 #fc00ff, 0.025em 0.04em 0 #fffc00; }
+    14% { text-shadow: 0.05em 0 0 #00fffc, -0.03em -0.04em 0 #fc00ff, 0.025em 0.04em 0 #fffc00; }
+    15% { text-shadow: -0.05em -0.025em 0 #00fffc, 0.025em 0.035em 0 #fc00ff, -0.05em -0.05em 0 #fffc00; }
+    49% { text-shadow: -0.05em -0.025em 0 #00fffc, 0.025em 0.035em 0 #fc00ff, -0.05em -0.05em 0 #fffc00; }
+    50% { text-shadow: 0.03em 0.05em 0 #00fffc, 0.05em 0 0 #fc00ff, 0 -0.05em 0 #fffc00; }
+    99% { text-shadow: 0.03em 0.05em 0 #00fffc, 0.05em 0 0 #fc00ff, 0 -0.05em 0 #fffc00; }
+    100% { text-shadow: -0.025em 0 0 #00fffc, -0.025em -0.025em 0 #fc00ff, -0.025em -0.05em 0 #fffc00; }
+}
 .overlay {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0, 10, 20, 0.9);
     display: flex; flex-direction: column;
-    justify-content: center; align-items: center;
-    z-index: 200;
-    color: #00F2FF;
-    text-shadow: 0 0 10px #00F2FF;
+    justify-content: center; align-items: center; z-index: 200;
+    color: #00F2FF; text-shadow: 0 0 10px #00F2FF;
 }
 
 button {
@@ -28,9 +92,7 @@ button {
     cursor: pointer; margin-top: 20px; transition: 0.3s;
 }
 
-button:hover {
-    background: #00F2FF; color: #000; box-shadow: 0 0 20px #00F2FF;
-}
+button:hover { background: #00F2FF; color: #000; box-shadow: 0 0 20px #00F2FF; }
 
 #game-over-screen { background: rgba(40, 0, 0, 0.95); }
 #game-over-screen h1 { font-size: 4rem; margin-bottom: 0; }
@@ -47,48 +109,28 @@ button:hover {
 .stat-container { margin-bottom: 20px; }
 label { display: block; font-size: 12px; margin-bottom: 5px; text-shadow: 0 0 8px #00F2FF; }
 
-.bar-bg {
-    width: 200px; height: 10px;
-    background: rgba(0, 40, 60, 0.5);
-    border: 1px solid #00F2FF;
-    box-shadow: 0 0 10px rgba(0, 242, 255, 0.2);
-}
+.bar-bg { width: 200px; height: 10px; background: rgba(0, 40, 60, 0.5); border: 1px solid #00F2FF; box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }
 
 /* HOW TO PLAY SCREEN STYLING */
 .instructions {
     background: rgba(0, 20, 40, 0.8);
     border: 1px solid #00F2FF;
-    padding: 30px;
-    margin: 20px 0;
-    max-width: 600px;
-    text-align: left;
-    line-height: 1.6;
+    padding: 30px; margin: 20px 0; max-width: 600px; text-align: left; line-height: 1.6;
     box-shadow: 0 0 20px rgba(0, 242, 255, 0.1) inset;
 }
 
-.instructions p {
-    margin-top: 0;
-}
+.instructions p { margin-top: 0; }
 
 .controls-grid {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 10px 20px;
-    margin: 20px 0;
-    padding: 15px;
+    display: grid; grid-template-columns: auto 1fr;
+    gap: 10px 20px; margin: 20px 0; padding: 15px; 
     background: rgba(0, 0, 0, 0.5);
     border-left: 3px solid #00F2FF;
 }
 
-.controls-grid strong {
-    color: #FFF;
-    letter-spacing: 1px;
-}
+.controls-grid strong { color: #FFF; letter-spacing: 1px; }
 
-#health-bar {
-    height: 100%; background: #00F2FF;
-    box-shadow: 0 0 15px #00F2FF; transition: width 0.3s ease;
-}
+#health-bar { height: 100%; background: #00F2FF; box-shadow: 0 0 15px #00F2FF; transition: width 0.3s ease; }
 
 #ammo-segments { display: flex; gap: 4px; }
 .segment { width: 15px; height: 15px; border: 1px solid #00F2FF; background: transparent; }
@@ -99,14 +141,9 @@ label { display: block; font-size: 12px; margin-bottom: 5px; text-shadow: 0 0 8p
 
 /* REBUILT CROSSHAIR */
 #crosshair {
-    position: fixed;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    width: 34px; height: 34px;
-    border: 2px solid rgba(0, 242, 255, 0.6);
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 100;
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 34px; height: 34px; border: 2px solid rgba(0, 242, 255, 0.6);
+    border-radius: 50%; pointer-events: none; z-index: 100;
     transition: transform 0.1s, border-color 0.1s;
 }
 
@@ -121,10 +158,7 @@ label { display: block; font-size: 12px; margin-bottom: 5px; text-shadow: 0 0 8p
     box-shadow: 0 0 8px #00ffff;
 }
 
-#crosshair.hit {
-    transform: translate(-50%, -50%) scale(1.3);
-    border-color: #ff0055;
-}
+#crosshair.hit { transform: translate(-50%, -50%) scale(1.3); border-color: #ff0055; }
 #crosshair.hit::after { background: #ff0055; box-shadow: 0 0 8px #ff0055; }
 
 /* HAZES */
@@ -136,7 +170,7 @@ label { display: block; font-size: 12px; margin-bottom: 5px; text-shadow: 0 0 8p
 #damage-haze.active { opacity: 1; }
 
 #heal-haze {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: radial-gradient(circle, transparent 20%, rgba(0, 249, 54, 0.2) 100%);
     pointer-events: none; z-index: 5;
 }

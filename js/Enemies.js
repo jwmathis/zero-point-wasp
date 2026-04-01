@@ -136,6 +136,7 @@ export class EnemySystem {
             particle.userData.timer = 0;
             this.scene.add(particle);
             this.particles.push(particle);
+            if (sfx.explosion) sfx.explosion.play();
         }
     }
 
@@ -254,6 +255,7 @@ export class EnemySystem {
         bullet.userData.dir = dir;
         this.scene.add(bullet);
         this.enemyProjectiles.push(bullet);
+        if (sfx.laser) sfx.laser.play();
     }
 
     fireBurst(enemy, camera) {

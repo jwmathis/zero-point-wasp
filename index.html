@@ -6,6 +6,10 @@ Minimal HTML to provide container for the game and a place for the HUD.
 https://skfb.ly/oBqZU
 "Futuristic Cyberpunk Ammo Crate" (https://skfb.ly/pFPSR) by Nullified is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
 "Random Scifi Devices" (https://skfb.ly/pFBzA) by Iteration Unlimited is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+https://freesound.org/people/LilMati/sounds/521105/
+https://freesound.org/people/djfroyd/sounds/348164/
+https://freesound.org/people/tyops/sounds/475620/
+https://freesound.org/people/SgtPepperArc360/sounds/344742/
 -->
 
 <!DOCTYPE html>
@@ -17,6 +21,14 @@ https://skfb.ly/oBqZU
         <link rel="icon" type="image/png" href="assets/battle.png">
     </head>
     <body>
+
+        <div id="splash-overlay">
+            <div class="splash-content">
+                <h1 class="glitch">ZERO-POINT</h1>
+                <p>TERMINAL INITIALIZATION REQUIRED</p>
+                <button id="initialize-btn">INITIALIZE SYSTEMS</button>
+            </div>
+        </div>
 
         <div id="start-screen" class="overlay">
             <h1>ZERO-POINT: THE WASP PROTOCOL</h1>
@@ -34,7 +46,7 @@ https://skfb.ly/oBqZU
                     <div><strong>[MOUSE]</strong></div><div>Aim / Look</div>
                     <div><strong>[LEFT CLICK]</strong></div><div>Fire Weapons</div>
                     <div><strong>[ P ]</strong></div><div>Pause Game</div>
-                    <div><strong>[ T ]</strong></div><div>Cycle Ship Model</div>
+                    <!-- <div><strong>[ T ]</strong></div><div>Cycle Ship Model</div> -->
                 </div>
                 <p><strong>RESOURCES:</strong> Fly through <span style="color:#00ffff;">Cyan</span> items to restore Health, and <span style="color:#ff0055;">Magenta</span> items to reload Ammo.</p>
                 <p><strong>UPGRADES:</strong> Reach a Sync Rating of 3,000 to unlock the Twin-Shot.</p>

@@ -31,6 +31,19 @@ const gameState = {
 };
 window.gameState = gameState;  // Global access for EnemySystem and ProjectileSystem to read state
 
+const listener = new THREE.AudioListener();
+const soundLoader = new THREE.AudioLoader();
+window.sfx = {};
+function loadSFX(name, path, volume =0.5, loop=false) {
+    const sound = new THREE.Audio(listener);
+    soundLoader.load(path, (buffer) => {
+        sound.setBuffer(buffer);
+        sound.setLoop(loop);
+        sound.setVolume(volume);
+    })
+    sfx[name] = sound;
+}
+
 // --- UI ELEMENT CACHING ---
 // Caching elements prevents expensive DOM lookups every frame
 const hudHealth = document.getElementById('health-bar');
@@ -39,6 +52,15 @@ const startScreen = document.getElementById('start-screen');
 const pauseScreen = document.getElementById('pause-screen');
 const gameOverScreen = document.getElementById('game-over-screen');
 const howToPlayScreen = document.getElementById('how-to-play-screen');
+const splashOverlay = document.getElementById('splash-overlay');
+const initializeBtn = document.getElementById('initialize-btn');
+
+
+loadSFX('laser', './assets/sounds/laser.wav', 0.3);
+loadSFX('explosion', './assets/sounds/explosion.wav', 0.6);
+loadSFX('powerup', './assets/sounds/powerup.wav', 0.5);
+loadSFX('intro', './assets/sounds/game_intro.wav', 0.5, true);
+loadSFX('theme', './assets/sounds/game_theme.wav', 0.5, true);
 
 // --- SCENE SETUP ---
 const scene = new THREE.Scene();
@@ -69,6 +91,7 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 scene.add(camera); // Add camera to scene because the player ship is parented to it
+camera.add(listener);
 
 // --- MODULE INITIALIZATION ---
 const wormhole = new Wormhole(scene);
@@ -136,13 +159,28 @@ window.createScorePopup = function(position, points) {
 }
 
 // --- INPUT HANDLERS ---
+
+initializeBtn.addEventListener('click', () => {
+    if (listener.context.state === 'suspended') { listener.context.resume(); }
+    if (window.sfx.intro && !window.sfx.intro.isPlaying) { window.sfx.intro.play(); }
+    splashOverlay.style.opacity = '0';
+    setTimeout(() => { splashOverlay.style.display = 'none'; }, 1000);
+});
+
 document.getElementById('start-button').addEventListener('click', () => {
+
+    if (window.sfx.intro && window.sfx.intro.isPlaying) window.sfx.intro.stop();
+    if (window.sfx.theme && !window.sfx.theme.isPlaying) window.sfx.theme.play();
+
     renderer.domElement.requestPointerLock();
     startScreen.style.display = 'none';
     setTimeout(() => { gameState.hasStarted = true; }, 100);
 });
 
 document.getElementById('how-to-play-button').addEventListener('click', () => {
+    if (listener.context.state === 'suspended') { listener.context.resume(); }
+    if (sfx.intro && !sfx.intro.isPlaying && !gameState.hasStarted) { sfx.intro.play(); }
+
     startScreen.style.display = 'none';
     howToPlayScreen.style.display = 'flex';
 });
@@ -191,12 +229,15 @@ window.addEventListener('mousedown', (e) => {
         setTimeout(() => { camera.position.z -= 0.1; }, 50);
         gameState.ammo--;
         updateHUD();
-        
+        if (sfx.laser) { sfx.laser.isPlaying && sfx.laser.stop(); sfx.laser.play(); }
+
         // Weapon flash effect
         light.intensity = 5.0;
         setTimeout(() => { light.intensity = 1.5; }, 100);
     }
 });
+
+
 
 // --- MAIN ANIMATION LOOP ---
 let lastDifficultyLevel = 0; // Track last difficulty level to trigger level-up effects
@@ -206,7 +247,7 @@ function animate() {
     if (!gameState.hasStarted || gameState.isPaused || gameState.isDead) return;
 
     const now = performance.now();
-    const difficultyLevel = Math.floor(gameState.score / 500); // Increaes difficulty every 500 pts
+    const difficultyLevel = Math.floor(gameState.score / 200); // Increaes difficulty every 500 pts
     gameState.difficultyLevel = difficultyLevel; // Save to state for other modules
 
     // Enable Twin Shot if score is high enough
@@ -233,8 +274,8 @@ function animate() {
 
     // Update enemy spawning logic to use the new interval
     if (now - gameState.lastEnemySpawn > spawnInterval) {
-        // Once past 1000 points, 40% chance to spawn a formation instead of a single enemy
-        if (gameState.score > 1000 && Math.random() < 0.40) {
+        // Once past 1000 points, 60% chance to spawn a formation instead of a single enemy
+        if (gameState.score > 1000 && Math.random() < 0.60) {
             enemies.spawnFormation('striker');
         } else {
             enemies.spawnRandom();
@@ -242,7 +283,7 @@ function animate() {
         gameState.lastEnemySpawn = now;
     }
 
-    if (now - gameState.lastPowerUpSpawn > 10000) { // Spawn power up every 10s
+    if (now - gameState.lastPowerUpSpawn > 20000) { // Spawn power up every 20s
         powerUps.spawn();
         gameState.lastPowerUpSpawn = now;
     }
