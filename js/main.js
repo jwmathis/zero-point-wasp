@@ -247,15 +247,15 @@ function animate() {
     if (!gameState.hasStarted || gameState.isPaused || gameState.isDead) return;
 
     const now = performance.now();
-    const difficultyLevel = Math.floor(gameState.score / 200); // Increaes difficulty every 500 pts
+    const difficultyLevel = Math.floor(gameState.score / 1000); // Increaes difficulty every 1000 pts
     gameState.difficultyLevel = difficultyLevel; // Save to state for other modules
 
     // Enable Twin Shot if score is high enough
     if (gameState.score >= 3000 && !gameState.twinShot) { gameState.twinShot = true; }
-
-    // Scale speed (Caps around 2.0 to prevent breaking physics)
-    gameState.moveSpeed = Math.min(2.0, 0.3 * (1 + difficultyLevel * 0.15));
-    const spawnInterval = Math.max(500, 8000 * (1 - difficultyLevel * 0.05));
+    //if (Math.floor(gameState.score / 1000)) { gameState.maxAmmo++; gameState.ammo++; }
+    // Scale speed
+    gameState.moveSpeed = Math.min(1.3, 0.2 * (1 + difficultyLevel * 0.08));
+    const spawnInterval = Math.max(800, 1500 * (1 - difficultyLevel * 150));
 
     // Regeneration Logic: Regenerate ammo over time if not at max
     if (gameState.ammo < gameState.maxAmmo && now - gameState.lastRegen > gameState.regenInterval) {
@@ -272,10 +272,10 @@ function animate() {
     powerUps.update(camera, gameState, updateHUD);
     projectiles.update();
 
-    // Update enemy spawning logic to use the new interval
+    // Enemy Spawning logic
     if (now - gameState.lastEnemySpawn > spawnInterval) {
-        // Once past 1000 points, 60% chance to spawn a formation instead of a single enemy
-        if (gameState.score > 1000 && Math.random() < 0.60) {
+        // Once past 1000 points, 40% chance to spawn a formation instead of a single enemy
+        if (gameState.score > 1000 && Math.random() < 0.40) {
             enemies.spawnFormation('striker');
         } else {
             enemies.spawnRandom();

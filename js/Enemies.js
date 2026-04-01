@@ -145,8 +145,6 @@ export class EnemySystem {
         // Update Enemies
         for (let index = this.enemies.length - 1; index >= 0; index--) {
             const enemy = this.enemies[index];
-            // Basic movement toward player
-            enemy.position.z += gameState.moveSpeed * 2;
 
             // DIVING BEHAVIOR: 
             // If it's a diver, swoop down as it gets closer to the player
@@ -159,6 +157,7 @@ export class EnemySystem {
 
             if (enemy.userData.type === 'striker') {
                 enemy.rotation.z += 0.01; 
+                enemy.position.x += Math.sin(now * 0.003 + index) * 0.08;
                 // Fire logic
                 if (distSq < 10000 && now - enemy.userData.lastShot > 3000) { 
                     this.fireBurst(enemy, camera);
@@ -174,7 +173,7 @@ export class EnemySystem {
                 enemy.position.addScaledVector(dir, 0.25);
             }
 
-            enemy.position.z += window.gameState.moveSpeed * 1.5;
+            enemy.position.z += window.gameState.moveSpeed * 1.1;
 
             if (distSq < 9.0) { // Crash distance
                 this.damagePlayer(enemy.userData.type);
