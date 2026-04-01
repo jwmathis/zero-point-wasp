@@ -222,12 +222,17 @@ function animate() {
         gameState.lastEnemySpawn = now;
     }
 
+    // if (now - gameState.lastEnemySpawn > 3000 / gameState.multiplier) {
+    //     enemies.spawnFormation('striker');
+    //     gameState.lastEnemySpawn = now;
+    // }
+
     if (now - gameState.lastPowerUpSpawn > 10000) { // Spawn power up every 10s
         powerUps.spawn();
         gameState.lastPowerUpSpawn = now;
     }
 
-    enemies.update(camera, now);
+    enemies.update(camera, now, gameState);
     enemies.checkHits(projectiles);
     checkGameOver();
 

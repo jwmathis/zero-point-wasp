@@ -12,26 +12,27 @@ export class ProjectileSystem {
     }
 
     fire(camera) {
-        const bolt = new THREE.Mesh(this.geometry, this.material);
+        const wingOffsets = [1.8, -1.8]; // Right and Left offsets
 
-        // Calculate the "Target Point" (Where the crosshair is looking)
-        // 60 is How far out the lasers "zero" in
-        const targetPoint = new THREE.Vector3(0, 0, -60).applyQuaternion(camera.quaternion).add(camera.position);
+        wingOffsets.forEach(sideOffset => {
+            const bolt = new THREE.Mesh(this.geometry, this.material);
 
-        // Position the bolt at the wingtip
-        const offset = new THREE.Vector3(1.8 * this.sideToggle, -1.5, -3).applyQuaternion(camera.quaternion);
-        
-        bolt.position.copy(camera.position).add(offset);
-        bolt.lookAt(targetPoint); //Aim the bolt at the target point (Convergence)
-        bolt.rotation.x += Math.PI / 2; // Standard GLTF/Cylinder rotation fix (if your model is vertical)
+            // Calculate the "Target Point" (Where the crosshair is looking)
+            const targetPoint = new THREE.Vector3(0, 0, -60).applyQuaternion(camera.quaternion).add(camera.position);
 
-        // Save the direction for the update loop
-        // Instead of camera direction, we use the vector from spawn to target
-        bolt.userData.direction = new THREE.Vector3().subVectors(targetPoint, bolt.position).normalize();
+            // Position the bolt at the specific wingtip
+            const offset = new THREE.Vector3(sideOffset, -1.5, -3).applyQuaternion(camera.quaternion);
+            
+            bolt.position.copy(camera.position).add(offset);
+            bolt.lookAt(targetPoint);
+            bolt.rotation.x += Math.PI / 2; // Cylinder orientation fix
 
-        this.scene.add(bolt);
-        this.bolts.push(bolt);
-        this.sideToggle *= -1; // Switch sides for the next shot
+            // Save direction for the update loop
+            bolt.userData.direction = new THREE.Vector3().subVectors(targetPoint, bolt.position).normalize();
+
+            this.scene.add(bolt);
+            this.bolts.push(bolt);
+        });
     }
 
     update() {

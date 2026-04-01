@@ -139,10 +139,21 @@ export class EnemySystem {
         }
     }
 
-    update(camera, now) {
+    update(camera, now, gameState) {
+
         // Update Enemies
         for (let index = this.enemies.length - 1; index >= 0; index--) {
             const enemy = this.enemies[index];
+            // Basic movement toward player
+            enemy.position.z += gameState.moveSpeed * 2;
+
+            // DIVING BEHAVIOR: 
+            // If it's a diver, swoop down as it gets closer to the player
+            if (enemy.userData.behavior === 'diver' && enemy.position.z > -80) {
+                enemy.position.y -= 0.12; // Descent speed
+                enemy.rotation.x = THREE.MathUtils.lerp(enemy.rotation.x, Math.PI / 6, 0.05); // Tilt nose down
+            }
+
             const distSq = enemy.position.distanceToSquared(camera.position);
 
             if (enemy.userData.type === 'striker') {
@@ -198,6 +209,29 @@ export class EnemySystem {
                 this.enemyProjectiles.splice(i, 1);
             }
         }
+    }
+
+    spawnFormation(type = 'striker') {
+        const formations = {
+            'V': [{x: 0, y: 0, z: 0}, {x: -8, y: 4, z: -15}, {x: 8, y: 4, z: -15}],
+            'Line': [{x: -10, y: 0, z: 0}, {x: 0, y: 0, z: 0}, {x: 10, y: 0, z: 0}]
+        };
+
+        const keys = Object.keys(formations);
+        const selectedPattern = formations[keys[Math.floor(Math.random() * keys.length)]];
+        const behavior = Math.random() > 0.5 ? 'diver' : 'standard';
+
+        selectedPattern.forEach(offset => {
+            const mesh = this.spawn(type, (1, 1, 1)); // Call existing asset creation logic
+            mesh.position.set(
+                (Math.random() - 0.5) * 10 + offset.x,
+                (Math.random() - 0.5) * 10 + offset.y,
+                -250 + offset.z // Spawn deep in the distance
+            );
+            mesh.userData = { type, behavior, health: 2 };
+            this.scene.add(mesh);
+            this.enemies.push(mesh);
+        });
     }
 
     fireAtPlayer(enemy, camera) {
