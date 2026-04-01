@@ -54,6 +54,37 @@ label { display: block; font-size: 12px; margin-bottom: 5px; text-shadow: 0 0 8p
     box-shadow: 0 0 10px rgba(0, 242, 255, 0.2);
 }
 
+/* HOW TO PLAY SCREEN STYLING */
+.instructions {
+    background: rgba(0, 20, 40, 0.8);
+    border: 1px solid #00F2FF;
+    padding: 30px;
+    margin: 20px 0;
+    max-width: 600px;
+    text-align: left;
+    line-height: 1.6;
+    box-shadow: 0 0 20px rgba(0, 242, 255, 0.1) inset;
+}
+
+.instructions p {
+    margin-top: 0;
+}
+
+.controls-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px 20px;
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.5);
+    border-left: 3px solid #00F2FF;
+}
+
+.controls-grid strong {
+    color: #FFF;
+    letter-spacing: 1px;
+}
+
 #health-bar {
     height: 100%; background: #00F2FF;
     box-shadow: 0 0 15px #00F2FF; transition: width 0.3s ease;

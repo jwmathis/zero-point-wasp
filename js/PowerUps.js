@@ -5,7 +5,7 @@ export class PowerUpSystem {
         this.scene = scene;
         this.powerUps = [];
 
-        //Geometries for different types
+        
         this.geos = {
             health: new THREE.TorusGeometry(0.5, 0.2, 8, 24),
             ammo: new THREE.IcosahedronGeometry(0.7, 0)

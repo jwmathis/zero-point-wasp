@@ -12,8 +12,15 @@ export class ProjectileSystem {
     }
 
     fire(camera) {
-        const wingOffsets = [1.8, -1.8]; // Right and Left offsets
+        let wingOffsets = []; // Right and Left offsets
 
+        if (window.gameState && window.gameState.twinShot) {
+            wingOffsets = [1.8, -1.8]; // Fire both sides
+        } else {
+            wingOffsets = [1.8 * this.sideToggle]; // Fire alternating sides
+            this.sideToggle *= -1; // Flip for next shot
+        }
+        
         wingOffsets.forEach(sideOffset => {
             const bolt = new THREE.Mesh(this.geometry, this.material);
 

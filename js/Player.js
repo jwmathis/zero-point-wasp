@@ -18,10 +18,10 @@ export class Player {
         this.rollIntensity = 0.05;
         
         this.ships = [
-            { time: 0.74, scale: 1.5, y: -0.8, name: "Main Shuttle" },
-            { time: 3.15, scale: 1.8, y: -0.6, name: "X-Wing" },
-            { time: 5.77, scale: 1.2, y: -0.5, name: "Hyper Shuttle" },
-            { time: 8.26, scale: 2.0, y: -1.0, name: "Jet" },
+            { time: 0.74, scale: 0.5, y: -0.8, name: "Main Shuttle" },
+            { time: 3.15, scale: 0.8, y: -0.6, name: "X-Wing" },
+            { time: 5.77, scale: 0.8, y: -0.5, name: "Hyper Shuttle" },
+            { time: 8.26, scale: 0.8, y: -1.0, name: "Jet" },
         ];        
         this.currentShipIndex = 1; // Default to X-wing
         this.canSwitchShip = true;

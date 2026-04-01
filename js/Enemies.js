@@ -29,21 +29,21 @@ export class EnemySystem {
 
     loadAssets() {
         // --- STRIKER ---
-        const strikerTex = this.textureLoader.load('./assets/striker/Textures/Striker_Purple.png');
-        this.loader.load('./assets/striker/Striker.gltf', (gltf) => {
-            this.strikerModel = this.prepareModel(gltf.scene, strikerTex, 0.8);
+        const strikerTex = this.textureLoader.load('./assets/future_drone/textures/Material_1001_baseColor.png');
+        this.loader.load('./assets/future_drone/scene.gltf', (gltf) => {
+            this.strikerModel = this.prepareModel(gltf.scene, strikerTex, 0.1);
         });
 
         // --- SEEKER ---
-        const seekerTex = this.textureLoader.load('./assets/seeker/Textures/Insurgent_Red.png');
-        this.loader.load('./assets/seeker/Insurgent.gltf', (gltf) => {
-            this.seekerModel = this.prepareModel(gltf.scene, seekerTex, 0.5);
+        const seekerTex = this.textureLoader.load('./assets/scifi_drone/textures/M2Robot_baseColor>.png');
+        this.loader.load('./assets/scifi_drone/scene.gltf', (gltf) => {
+            this.seekerModel = this.prepareModel(gltf.scene, seekerTex, 0.1);
         });
 
         // --- MINE ---
         const mineTex = this.textureLoader.load('./assets/mine/Textures/material_1_baseColor.png');
         this.loader.load('./assets/mine/crate.gltf', (gltf) => {
-            this.mineModel = this.prepareModel(gltf.scene, mineTex, 1.5);
+            this.mineModel = this.prepareModel(gltf.scene, mineTex, 0.6);
         });
     }
 
@@ -149,7 +149,7 @@ export class EnemySystem {
 
             // DIVING BEHAVIOR: 
             // If it's a diver, swoop down as it gets closer to the player
-            if (enemy.userData.behavior === 'diver' && enemy.position.z > -80) {
+            if (enemy.userData.behavior === 'seeker' && enemy.position.z > -80) {
                 enemy.position.y -= 0.12; // Descent speed
                 enemy.rotation.x = THREE.MathUtils.lerp(enemy.rotation.x, Math.PI / 6, 0.05); // Tilt nose down
             }
@@ -167,7 +167,8 @@ export class EnemySystem {
                 enemy.rotation.y += 0.02; 
                 enemy.rotation.x += 0.01;
             } else if (enemy.userData.type === 'seeker') {
-                enemy.rotation.z = Math.sin(Date.now() * 0.005) * 0.2;
+                //enemy.rotation.z = Math.sin(Date.now() * 0.005) * 0.2;
+                enemy.rotation.z += 0.01; 
                 const dir = new THREE.Vector3().subVectors(camera.position, enemy.position).normalize();
                 enemy.position.addScaledVector(dir, 0.25);
             }
@@ -222,15 +223,19 @@ export class EnemySystem {
         const behavior = Math.random() > 0.5 ? 'diver' : 'standard';
 
         selectedPattern.forEach(offset => {
-            const mesh = this.spawn(type, (1, 1, 1)); // Call existing asset creation logic
-            mesh.position.set(
+            // FIX: Calculate proper position Vector before passing to spawn()
+            const spawnPos = new THREE.Vector3(
                 (Math.random() - 0.5) * 10 + offset.x,
                 (Math.random() - 0.5) * 10 + offset.y,
                 -250 + offset.z // Spawn deep in the distance
             );
-            mesh.userData = { type, behavior, health: 2 };
-            this.scene.add(mesh);
-            this.enemies.push(mesh);
+            
+            // Use the standard spawn function so they get properly registered
+            const mesh = this.spawn(type, spawnPos);
+            
+            // Override with formation-specific stats
+            mesh.userData.behavior = behavior;
+            mesh.userData.health = 2;
         });
     }
 

@@ -17,7 +17,7 @@ const gameState = {
     ammo: 5,
     maxAmmo: 5,
     lastRegen: 0,
-    regenInterval: 1500, // Recharge 1 segment every 1.5s
+    regenInterval: 1500, // Recharge 1 ammo segment every 1.5s
     isPaused: false,
     hasStarted: false,
     isDead: false,
@@ -26,7 +26,8 @@ const gameState = {
     score: 0,
     multiplier: 1,
     lastEnemySpawn: 0,
-    lastPowerUpSpawn: 0
+    lastPowerUpSpawn: 0,
+    twinShot: false // Track single/twin shot
 };
 window.gameState = gameState;  // Global access for EnemySystem and ProjectileSystem to read state
 
@@ -37,6 +38,7 @@ const hazeEl = document.getElementById('damage-haze');
 const startScreen = document.getElementById('start-screen');
 const pauseScreen = document.getElementById('pause-screen');
 const gameOverScreen = document.getElementById('game-over-screen');
+const howToPlayScreen = document.getElementById('how-to-play-screen');
 
 // --- SCENE SETUP ---
 const scene = new THREE.Scene();
@@ -140,6 +142,16 @@ document.getElementById('start-button').addEventListener('click', () => {
     setTimeout(() => { gameState.hasStarted = true; }, 100);
 });
 
+document.getElementById('how-to-play-button').addEventListener('click', () => {
+    startScreen.style.display = 'none';
+    howToPlayScreen.style.display = 'flex';
+});
+
+document.getElementById('back-button').addEventListener('click', () => {
+    howToPlayScreen.style.display = 'none';
+    startScreen.style.display = 'flex';
+});
+
 document.getElementById('resume-button').addEventListener('click', () => {
     gameState.isPaused = false;
     pauseScreen.style.display = 'none';
@@ -194,8 +206,11 @@ function animate() {
     if (!gameState.hasStarted || gameState.isPaused || gameState.isDead) return;
 
     const now = performance.now();
-    const difficultyLevel = Math.floor(gameState.score / 5000);
+    const difficultyLevel = Math.floor(gameState.score / 500); // Increaes difficulty every 500 pts
     gameState.difficultyLevel = difficultyLevel; // Save to state for other modules
+
+    // Enable Twin Shot if score is high enough
+    if (gameState.score >= 3000 && !gameState.twinShot) { gameState.twinShot = true; }
 
     // Scale speed (Caps around 2.0 to prevent breaking physics)
     gameState.moveSpeed = Math.min(2.0, 0.3 * (1 + difficultyLevel * 0.15));
@@ -218,14 +233,14 @@ function animate() {
 
     // Update enemy spawning logic to use the new interval
     if (now - gameState.lastEnemySpawn > spawnInterval) {
-        enemies.spawnRandom();
+        // Once past 1000 points, 40% chance to spawn a formation instead of a single enemy
+        if (gameState.score > 1000 && Math.random() < 0.40) {
+            enemies.spawnFormation('striker');
+        } else {
+            enemies.spawnRandom();
+        }
         gameState.lastEnemySpawn = now;
     }
-
-    // if (now - gameState.lastEnemySpawn > 3000 / gameState.multiplier) {
-    //     enemies.spawnFormation('striker');
-    //     gameState.lastEnemySpawn = now;
-    // }
 
     if (now - gameState.lastPowerUpSpawn > 10000) { // Spawn power up every 10s
         powerUps.spawn();
@@ -237,7 +252,7 @@ function animate() {
     checkGameOver();
 
     // Passive scoring: +1 point per frame while alive
-    gameState.score += 1;
+    //gameState.score += 1;
     document.getElementById('score-display').innerText = gameState.score.toString().padStart(6, '0');
 
     // COLLISION PHASE
