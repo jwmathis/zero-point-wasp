@@ -33,7 +33,7 @@ https://skfb.ly/oBqZU
         <div id="game-over-screen" class="overlay" style="display: none;">
             <h1 style="color: #FF0000; text-shadow: 0 0 15px #FF0000;">PILOT KIA</h1>
             <p>NEURAL LINK SEVERED</p>
-            <div id="final-score"></div>
+            <p style="font-size: 24px;">FINAL SYNC: <span id="final-score-value" style="color:#00F2FF;">0</span></p>
             <button id="restart-button">RE-INITIALIZE</button>
         </div>
 
@@ -59,16 +59,12 @@ https://skfb.ly/oBqZU
                 <div id="score-display" style="font-size: 24px; color: #00F2FF;">000000</div>
             </div>
 
-            <p>FINAL SYNC: <span id="final-score-value">0</span></p>
-
-            <div id="crosshair">
-                <div class="line vertical"></div>
-                <div class="line horizontal"></div>
-                <div class="dot"></div>
-            </div>
-
+            <div id="crosshair"></div>
         </div>
-        <div id="damage-haze" style="display: none;"></div>
+
+        <div id="damage-haze"></div>
+        <div id="heal-haze" style="display: none;"></div>
+        <div id="reload-haze" style="display: none;"></div>
 
         <script type="module" src="js/main.js"></script>
     </body>

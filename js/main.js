@@ -4,7 +4,6 @@
  * Part of the "Zero-Point: The Wasp Protocol" Capstone Project.
  */
 import * as THREE from 'three';
-
 import { Wormhole } from './World.js';
 import { ProjectileSystem } from './Projectiles.js';    
 import { EnemySystem } from './Enemies.js';
@@ -26,10 +25,10 @@ const gameState = {
     moveSpeed: 0.5,
     score: 0,
     multiplier: 1,
+    lastEnemySpawn: 0,
+    lastPowerUpSpawn: 0
 };
-
-// Global access for EnemySystem and ProjectileSystem to read state
-window.gameState = gameState; 
+window.gameState = gameState;  // Global access for EnemySystem and ProjectileSystem to read state
 
 // --- UI ELEMENT CACHING ---
 // Caching elements prevents expensive DOM lookups every frame
@@ -42,12 +41,11 @@ const gameOverScreen = document.getElementById('game-over-screen');
 // --- SCENE SETUP ---
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.1, 1000);
-scene.add(camera);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
+
 const light = new THREE.AmbientLight(0xffffff, 0.5); // Base light for non-metallic parts
 scene.add(light);
-// Directional Light is the "Sun"
-const sunLight = new THREE.DirectionalLight(0xffffff, 2.5);
+const sunLight = new THREE.DirectionalLight(0xffffff, 2.5); // Directional Light is the "Sun"
 sunLight.position.set(5, 10, 7.5);
 scene.add(sunLight);
 
@@ -61,14 +59,14 @@ headlight.position.set(0, 0, -2); // Directly illuminating the hull
 
 const pmremGenerator = new THREE.PMREMGenerator(renderer);
 pmremGenerator.compileEquirectangularShader();
-// Use a neutral scene for reflections so the metal actually "shines"
-scene.environment = pmremGenerator.fromScene(new THREE.Scene()).texture;
+scene.environment = pmremGenerator.fromScene(new THREE.Scene()).texture; // Use a neutral scene for reflections so the metal actually "shines"
 
 scene.background = new THREE.Color(0x050505);
 scene.fog = new THREE.FogExp2(0x000000, 0.015);
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
+scene.add(camera); // Add camera to scene because the player ship is parented to it
 
 // --- MODULE INITIALIZATION ---
 const wormhole = new Wormhole(scene);
@@ -84,7 +82,7 @@ camera.rotation.order = 'YXZ';
 // --- STARFIELD (Atmospheric Background) ---
 const starGeometry = new THREE.BufferGeometry();
 const starVertices = [];
-for (let i = 0; i < 5000; i++) {
+for (let i = 0; i < 2000; i++) {
     starVertices.push((Math.random() - 0.5) * 1000, (Math.random() - 0.5) * 1000, (Math.random() - 0.5) * 1000);
 }
 starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
@@ -92,13 +90,9 @@ const stars = new THREE.Points(starGeometry, new THREE.PointsMaterial({ color: 0
 scene.add(stars);
 
 // --- CORE UTILITY FUNCTIONS ---
-
 function updateHUD() {
-    // Sync the HTML health bar with internal state
-    hudHealth.style.width = `${gameState.health}%`;
-    
-    // Sync energy segments
-    const segments = document.querySelectorAll('.segment');
+    hudHealth.style.width = `${gameState.health}%`; // Sync the HTML health bar with internal state
+    const segments = document.querySelectorAll('.segment'); // Sync energy segments
     segments.forEach((seg, i) => {
         i < gameState.ammo ? seg.classList.add('active') : seg.classList.remove('active');
     });
@@ -110,6 +104,7 @@ function checkGameOver() {
         gameState.health = 0;
         updateHUD();
         document.getElementById('final-score-value').innerText = gameState.score; // Dsiplay final score
+        document.exitPointerLock(); // Release mouse control
         gameOverScreen.style.display = 'flex'; // Trigger Pilot KIA screen
     }
 }
@@ -123,14 +118,9 @@ function updateStars() {
     stars.geometry.attributes.position.needsUpdate = true;
 }
 
-/**
- * Project 3D coordinates to 2D screen space to show floating score numbers
- */
-function createScorePopup(position, points) {
+window.createScorePopup = function(position, points) {
     const vector = position.clone();
-    vector.project(camera); // Convert 3D to Normalized Device Coordinates (-1 to +1)
-
-    // Convert to pixel coordinates
+    vector.project(camera); 
     const x = (vector.x * .5 + .5) * window.innerWidth;
     const y = (vector.y * -.5 + .5) * window.innerHeight;
 
@@ -139,36 +129,37 @@ function createScorePopup(position, points) {
     popup.style.left = `${x}px`;
     popup.style.top = `${y}px`;
     popup.innerText = `+${points}`;
-
     document.body.appendChild(popup);
-
-    // Remove from DOM after animation finishes
     setTimeout(() => popup.remove(), 800);
 }
 
-// Attach to window so Enemies.js can call it
-window.createScorePopup = createScorePopup;
-
 // --- INPUT HANDLERS ---
-
 document.getElementById('start-button').addEventListener('click', () => {
     renderer.domElement.requestPointerLock();
-
     startScreen.style.display = 'none';
     setTimeout(() => { gameState.hasStarted = true; }, 100);
+});
+
+document.getElementById('resume-button').addEventListener('click', () => {
+    gameState.isPaused = false;
+    pauseScreen.style.display = 'none';
+    renderer.domElement.requestPointerLock(); 
 });
 
 document.getElementById('restart-button').addEventListener('click', () => window.location.reload());
 
 window.addEventListener('keydown', (e) => {
     const key = e.key.toLowerCase();
-
-    // Handle Pause
     if (key === 'p' && gameState.hasStarted) {
         gameState.isPaused = !gameState.isPaused;
         pauseScreen.style.display = gameState.isPaused ? 'flex' : 'none';
+
+        if (gameState.isPaused) {
+            document.exitPointerLock(); 
+        } else {
+            renderer.domElement.requestPointerLock();
+        }
     }
-    // Handle Movement Inputs
     if (gameState.keys.hasOwnProperty(key)) gameState.keys[key] = true;
 });
 
@@ -184,7 +175,7 @@ window.addEventListener('mousedown', (e) => {
 
     if (gameState.ammo > 0) {
         projectiles.fire(camera);
-        camera.position.z += 0.1; // Slight kickback
+        camera.position.z += 0.1; // Slight kickback when shooting
         setTimeout(() => { camera.position.z -= 0.1; }, 50);
         gameState.ammo--;
         updateHUD();
@@ -196,46 +187,73 @@ window.addEventListener('mousedown', (e) => {
 });
 
 // --- MAIN ANIMATION LOOP ---
+let lastDifficultyLevel = 0; // Track last difficulty level to trigger level-up effects
+
 function animate() {
     requestAnimationFrame(animate);
-    
-    // Stop processing if game is inactive
     if (!gameState.hasStarted || gameState.isPaused || gameState.isDead) return;
 
     const now = performance.now();
+    const difficultyLevel = Math.floor(gameState.score / 5000);
+    gameState.difficultyLevel = difficultyLevel; // Save to state for other modules
 
-    // Zero-Point Energy Regeneration
+    // Scale speed (Caps around 2.0 to prevent breaking physics)
+    gameState.moveSpeed = Math.min(2.0, 0.3 * (1 + difficultyLevel * 0.15));
+    const spawnInterval = Math.max(500, 8000 * (1 - difficultyLevel * 0.05));
+
+    // Regeneration Logic: Regenerate ammo over time if not at max
     if (gameState.ammo < gameState.maxAmmo && now - gameState.lastRegen > gameState.regenInterval) {
         gameState.ammo++;
         gameState.lastRegen = now;
         updateHUD();
     }
 
-    // UPDATE PHASE
+    // UPDATE SYSTEMS
+    wormhole.speed = gameState.moveSpeed;
     wormhole.update(gameState);
     updateStars();
     player.update(gameState.keys, gameState, updateHUD);
     powerUps.update(camera, gameState, updateHUD);
-    checkGameOver();
-    enemies.update(camera, now);
     projectiles.update();
-    // Passive scoring: +1 point per frame while alive
-    if (gameState.hasStarted && !gameState.isPaused && !gameState.isDead) {
-        gameState.score += 1;
-        document.getElementById('score-display').innerText = gameState.score.toString().padStart(6, '0');
+
+    // Update enemy spawning logic to use the new interval
+    if (now - gameState.lastEnemySpawn > spawnInterval) {
+        enemies.spawnRandom();
+        gameState.lastEnemySpawn = now;
     }
+
+    if (now - gameState.lastPowerUpSpawn > 10000) { // Spawn power up every 10s
+        powerUps.spawn();
+        gameState.lastPowerUpSpawn = now;
+    }
+
+    enemies.update(camera, now);
+    enemies.checkHits(projectiles);
+    checkGameOver();
+
+    // Passive scoring: +1 point per frame while alive
+    gameState.score += 1;
+    document.getElementById('score-display').innerText = gameState.score.toString().padStart(6, '0');
 
     // COLLISION PHASE
     // Check if player bolts hit any enemies
     enemies.checkHits(projectiles);
 
-    // RENDER PHASE
+    // Level up visual
+    if (difficultyLevel > lastDifficultyLevel) {
+        hazeEl.classList.add('active'); 
+        hazeEl.style.background = "radial-gradient(circle, transparent 20%, rgba(255, 255, 255, 0.4) 100%)";
+        setTimeout(() => { 
+            hazeEl.classList.remove('active'); 
+            hazeEl.style.background = ""; // Restore to the CSS default red
+        }, 150);
+        lastDifficultyLevel = difficultyLevel;
+    }
+
     renderer.render(scene, camera);
 }
-
 animate();
 
-// Responive window handling
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
@@ -243,7 +261,6 @@ window.addEventListener('resize', () => {
 });
 
 const crosshair = document.getElementById('crosshair');
-// Mouse-based camera look (Neural Link feel)
 window.addEventListener('mousemove', (e) => {
     if (gameState.isPaused || gameState.isDead || !gameState.hasStarted) {
         crosshair.style.display = 'none';
@@ -255,24 +272,14 @@ window.addEventListener('mousemove', (e) => {
         camera.rotation.y -= e.movementX * sensitivity;
         camera.rotation.x -= e.movementY * sensitivity;
 
-        // Optional: Clamp the vertical look so they can't flip the camera upside down
-        camera.rotation.x = THREE.MathUtils.clamp(camera.rotation.x, -0.5, 0.5);
+        camera.rotation.y = THREE.MathUtils.clamp(camera.rotation.y, -0.6, 0.6); // Look Left/Right limit
+        camera.rotation.x = THREE.MathUtils.clamp(camera.rotation.x, -0.5, 0.5); // Look Up/Down limit
     }
     crosshair.style.display = 'block';
-    crosshair.style.left = `${e.clientX}px`;
-    crosshair.style.top = `${e.clientY}px`;
-
-    // const x = (e.clientX / window.innerWidth) * 2 - 1;
-    // const y = -(e.clientY / window.innerHeight) * 2 + 1;
-    
-    // camera.rotation.y = -x * 0.3;
-    // camera.rotation.x = y * 0.3;
-    // camera.rotation.z = -x * 0.1; // Banking effect for the mouse
 });
 
 document.addEventListener('pointerlockchange', () => {
-    if (document.pointerLockElement !== renderer.domElement && gameState.hasStarted) {
-        // Pointer was unlocked (user hit Esc)
+    if (document.pointerLockElement !== renderer.domElement && gameState.hasStarted && !gameState.isDead) {
         gameState.isPaused = true;
         pauseScreen.style.display = 'flex';
     }

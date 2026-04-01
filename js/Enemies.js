@@ -9,8 +9,8 @@ export class EnemySystem {
         this.scene = scene;
         this.enemies = [];
         this.enemyProjectiles = [];
-
-        // Asset storage
+        this.particles = [];
+        
         this.strikerModel = null;
         this.seekerModel = null;
         this.mineModel = null;
@@ -18,18 +18,13 @@ export class EnemySystem {
         this.loader = new GLTFLoader();
         this.textureLoader = new THREE.TextureLoader();
 
-        // Fallback models
-        this.geos = {
+        this.geos = { // Default geometries if models aren't loaded yet
             mine: new THREE.IcosahedronGeometry(1, 0),
             seeker: new THREE.OctahedronGeometry(1.2, 0),
             striker: new THREE.TetrahedronGeometry(1.5, 0)
         };
         
-        // Start loading the striker ship
         this.loadAssets();
-
-        // Auto-spawn timer
-        setInterval(() => this.spawnRandom(), 4000);
     }
 
     loadAssets() {
@@ -37,21 +32,18 @@ export class EnemySystem {
         const strikerTex = this.textureLoader.load('./assets/striker/Textures/Striker_Purple.png');
         this.loader.load('./assets/striker/Striker.gltf', (gltf) => {
             this.strikerModel = this.prepareModel(gltf.scene, strikerTex, 0.8);
-            console.log("Striker Ready");
         });
 
         // --- SEEKER ---
         const seekerTex = this.textureLoader.load('./assets/seeker/Textures/Insurgent_Red.png');
         this.loader.load('./assets/seeker/Insurgent.gltf', (gltf) => {
             this.seekerModel = this.prepareModel(gltf.scene, seekerTex, 0.5);
-            console.log("Seeker Ready");
         });
 
         // --- MINE ---
         const mineTex = this.textureLoader.load('./assets/mine/Textures/material_1_baseColor.png');
         this.loader.load('./assets/mine/crate.gltf', (gltf) => {
             this.mineModel = this.prepareModel(gltf.scene, mineTex, 1.5);
-            console.log("Mine Ready");
         });
     }
 
@@ -59,9 +51,7 @@ export class EnemySystem {
         scene.traverse((child) => {
             if (child.isMesh) {
                 child.material = new THREE.MeshStandardMaterial({
-                    map: texture,
-                    metalness: 0.6,
-                    roughness: 0.4
+                    map: texture, metalness: 0.6, roughness: 0.4
                 });
                 child.frustumCulled = false;
             }
@@ -71,194 +61,154 @@ export class EnemySystem {
     }
 
     spawnRandom() {
-        if (!window.gameState.hasStarted || window.gameState.isPaused) return;
         const types = ['mine', 'seeker', 'striker'];
         const type = types[Math.floor(Math.random() * types.length)];
-        this.spawn(type, new THREE.Vector3((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 20, -150));
+        this.spawn(type, new THREE.Vector3((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 30, -150));
     }
 
     spawn(type, position) {
         let mesh;
-
-        // Check which model to clone
         if (type === 'striker' && this.strikerModel) {
             mesh = this.strikerModel.clone();
         } else if (type === 'seeker' && this.seekerModel) {
             mesh = this.seekerModel.clone();
         } else if (type === 'mine' && this.mineModel) {
             mesh = this.mineModel.clone();
-            // Add a random scale variation between 80% and 120% of the base size
-            const randomScale = 0.8 + Math.random() * 0.4;
-            mesh.scale.multiplyScalar(randomScale);
+            mesh.scale.multiplyScalar(0.8 + Math.random() * 0.4);
         } else {
-            // Fallback to geometric wireframes if models aren't ready
             const material = new THREE.MeshBasicMaterial({
-                color: type === 'striker' ? 0xFF00FF : 0xFF5500,
-                wireframe: true
+                color: type === 'striker' ? 0xFF00FF : 0xFF5500, wireframe: true
             });
             mesh = new THREE.Mesh(this.geos[type], material);
         }
 
         mesh.position.copy(position);
         mesh.userData = { type, health: 1, lastShot: 0 };
-
         this.scene.add(mesh);
         this.enemies.push(mesh);
     }
 
     checkHits(projectileSystem) {
-        projectileSystem.bolts.forEach((bolt, bIdx) => {
-            this.enemies.forEach((enemy, eIdx) => {
-                if (bolt.position.distanceTo(enemy.position) < 3.5) {
-                    // 1. Calculate Score
-                    const pointsMap = { 'mine': 100, 'seeker': 250, 'striker': 500 };
-                    const points = pointsMap[enemy.userData.type] || 100;
+            for (let bIdx = projectileSystem.bolts.length - 1; bIdx >= 0; bIdx--) {
+                const bolt = projectileSystem.bolts[bIdx];
+                
+                for (let eIdx = this.enemies.length - 1; eIdx >= 0; eIdx--) {
+                    const enemy = this.enemies[eIdx];
                     
-                    window.gameState.score += points;
-                    
-                    
-                    // Trigger Explosion
-                    const enemyColor = enemy.userData.type === 'striker' ? 0xff00ff : 0x00ffff;
-                    this.createExplosion(enemy.position, enemyColor);
-                    
-                    // Brief "hit-stop" effect
-                    const originalSpeed = this.moveSpeed;
-                    this.moveSpeed = 0.05; // Slow down
-                    setTimeout(() => { this.moveSpeed = 0.5; }, 50); // Snap back after 50ms
+                    if (bolt.position.distanceToSquared(enemy.position) < 25) { // Change this value for hitbox size (3.5^2 = 12.25)
+                        const pointsMap = { 'mine': 100, 'seeker': 250, 'striker': 500 };
+                        const points = pointsMap[enemy.userData.type] || 100;
+                        
+                        window.gameState.score += points;
+                        
+                        const enemyColor = enemy.userData.type === 'striker' ? 0xff00ff : 0x00ffff;
+                        this.createExplosion(enemy.position, enemyColor);
+                        
+                        if (window.createScorePopup) window.createScorePopup(enemy.position, points);
 
-                    // 2. Trigger the Floating Text
-                    if (window.createScorePopup) {
-                        window.createScorePopup(enemy.position, points);
+                        this.removeEnemy(enemy, eIdx);
+                        this.scene.remove(bolt);
+                        projectileSystem.bolts.splice(bIdx, 1);
+                        
+                        const ch = document.getElementById('crosshair');
+                        if(ch) {
+                            ch.classList.add('hit');
+                            setTimeout(() => ch.classList.remove('hit'), 100);
+                        }
+                        break; 
                     }
-
-
-                    // 3. Cleanup and Feedback
-                    this.removeEnemy(enemy, eIdx);
-                    this.scene.remove(bolt);
-                    projectileSystem.bolts.splice(bIdx, 1);
-                    
-                    const ch = document.getElementById('crosshair');
-                    ch.classList.add('hit');
-                    setTimeout(() => ch.classList.remove('hit'), 100);
                 }
-            });
-        });
-    }
+            }
+        }
 
     createExplosion(position, color = 0xff0055) {
-        const particleCount = 20;
         const geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
         const material = new THREE.MeshBasicMaterial({ color: color });
 
-        for (let i = 0; i < particleCount; i++) {
+        for (let i = 0; i < 20; i++) {
             const particle = new THREE.Mesh(geometry, material);
-            
-            // Start at enemy position
             particle.position.copy(position);
-
-            // Give it a random velocity vector
             particle.userData.velocity = new THREE.Vector3(
                 (Math.random() - 0.5) * 0.5,
                 (Math.random() - 0.5) * 0.5,
                 (Math.random() - 0.5) * 0.5
             );
-
-            // Life management
-            particle.userData.alive = true;
             particle.userData.timer = 0;
-
             this.scene.add(particle);
-            
-            // We need a way to track these to update them
-            if (!this.particles) this.particles = [];
             this.particles.push(particle);
         }
     }
 
     update(camera, now) {
         // Update Enemies
-        this.enemies.forEach((enemy, index) => {
-            const dist = enemy.position.distanceTo(camera.position);
+        for (let index = this.enemies.length - 1; index >= 0; index--) {
+            const enemy = this.enemies[index];
+            const distSq = enemy.position.distanceToSquared(camera.position);
 
-            // Some rotation to the enemies so they don't look static
             if (enemy.userData.type === 'striker') {
-                enemy.rotation.z += 0.01; // Barrel roll
-            } else if (enemy.userData.type === 'mine') {
-                enemy.rotation.y += 0.02; // Spinning menace
-                enemy.rotation.x += 0.01;
-            } else if (enemy.userData.type === 'seeker') {
-                // Seekers look cool if they "wobble" towards the player
-                enemy.rotation.z = Math.sin(Date.now() * 0.005) * 0.2;
-            }
-
-            if (enemy.userData.type === 'seeker') {
-                const dir = new THREE.Vector3().subVectors(camera.position, enemy.position).normalize();
-                enemy.position.addScaledVector(dir, 0.25);
-            } else if (enemy.userData.type === 'striker' && dist < 100) { // Distance enemy is from player before firing
-                if (now - enemy.userData.lastShot > 3000) { //3 seconds between bursts
+                enemy.rotation.z += 0.01; 
+                // Fire logic
+                if (distSq < 10000 && now - enemy.userData.lastShot > 3000) { 
                     this.fireBurst(enemy, camera);
                     enemy.userData.lastShot = now;
                 }
+            } else if (enemy.userData.type === 'mine') {
+                enemy.rotation.y += 0.02; 
+                enemy.rotation.x += 0.01;
+            } else if (enemy.userData.type === 'seeker') {
+                enemy.rotation.z = Math.sin(Date.now() * 0.005) * 0.2;
+                const dir = new THREE.Vector3().subVectors(camera.position, enemy.position).normalize();
+                enemy.position.addScaledVector(dir, 0.25);
             }
 
-            enemy.position.z += 0.5; // Approach player
+            enemy.position.z += window.gameState.moveSpeed * 1.5;
 
-            if (dist < 3.0) { // Crash collision
+            if (distSq < 9.0) { // Crash distance
                 this.damagePlayer(enemy.userData.type);
                 this.removeEnemy(enemy, index);
+                continue;
             }
             if (enemy.position.z > 10) this.removeEnemy(enemy, index);
+        }
 
-            if (this.particles) {
-                for (let i = this.particles.length - 1; i >= 0; i--) {
-                    const p = this.particles[i];
-                    p.position.add(p.userData.velocity);
-                    p.userData.timer++;
+        // Update Particles
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const p = this.particles[i];
+            p.position.add(p.userData.velocity);
+            p.userData.timer++;
+            p.scale.multiplyScalar(0.95);
 
-                    // Shrink them over time
-                    p.scale.multiplyScalar(0.95);
-
-                    // Remove after 30 frames or when too small
-                    if (p.userData.timer > 30 || p.scale.x < 0.01) {
-                        this.scene.remove(p);
-                        this.particles.splice(i, 1);
-                    }
-                }
+            if (p.userData.timer > 30 || p.scale.x < 0.01) {
+                this.scene.remove(p);
+                this.particles.splice(i, 1);
             }
-
-        });
+        }
 
         // Update Enemy Bullets
-        this.enemyProjectiles.forEach((p, i) => {
-            p.position.addScaledVector(p.userData.dir, 0.5);
-            if (p.position.distanceTo(camera.position) < 1.5) {
+        for (let i = this.enemyProjectiles.length - 1; i >= 0; i--) {
+            const p = this.enemyProjectiles[i];
+            p.position.addScaledVector(p.userData.dir, 0.6);
+            
+            if (p.position.distanceToSquared(camera.position) < 1.44) { // 1.5 units hitbox, squared for performance, decrease if you want it easier
                 this.damagePlayer('bolt');
                 this.scene.remove(p);
                 this.enemyProjectiles.splice(i, 1);
+            } else if (p.position.z > 20) {
+                this.scene.remove(p);
+                this.enemyProjectiles.splice(i, 1);
             }
-        });
+        }
     }
 
     fireAtPlayer(enemy, camera) {
-        const bullet = new THREE.Mesh(new THREE.SphereGeometry(0.3), new THREE.MeshBasicMaterial({ color: 0xFF0000 }));
-        bullet.position.copy(enemy.position);
-        bullet.userData.dir = new THREE.Vector3().subVectors(camera.position, enemy.position).normalize();
-        this.scene.add(bullet);
-        this.enemyProjectiles.push(bullet);
-    }
-
-    fireAtPlayer2(enemy, camera) {
-        // Create a small red glowing sphere for the enemy bolt
         const bulletGeo = new THREE.SphereGeometry(0.4, 8, 8);
         const bulletMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
         const bullet = new THREE.Mesh(bulletGeo, bulletMat);
         
         bullet.position.copy(enemy.position);
-
-        // Calculate direction to player
         const dir = new THREE.Vector3().subVectors(camera.position, enemy.position).normalize();
         
-        // OPTIONAL: Add slight randomness so shots aren't 100% perfect
+        // Random Spread
         dir.x += (Math.random() - 0.5) * 0.05;
         dir.y += (Math.random() - 0.5) * 0.05;
 
@@ -267,27 +217,20 @@ export class EnemySystem {
         this.enemyProjectiles.push(bullet);
     }
 
-
     fireBurst(enemy, camera) {
-        const shotCount = 3; // Number of shots in the burst
-        const delayBetweenShots = 150; // Milliseconds between each shot
-
-        for (let i = 0; i < shotCount; i++) {
+        for (let i = 0; i < 3; i++) { // Fire 3 bullets in quick succession
             setTimeout(() => {
-                // Check if the enemy still exists before firing (prevents errors if destroyed mid-burst)
                 if (this.enemies.includes(enemy)) {
                     this.fireAtPlayer(enemy, camera);
                 }
-            }, i * delayBetweenShots);
+            }, i * 150);
         }
     }
 
     damagePlayer(source) {
         const damageMap = { mine: 25, seeker: 35, striker: 20, bolt: 10 };
         window.gameState.health -= damageMap[source] || 10;
-        // Getting hit by an enemy resets your multiplier
         window.gameState.multiplier = 1;
-        window.gameState.health -= damageMap[source] || 10;
     }
 
     removeEnemy(enemy, index) {

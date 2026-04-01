@@ -8,32 +8,23 @@ export class Wormhole {
     constructor(scene) {
         this.scene = scene;
         this.segments = [];
-        this.speedLines = [];
-        
-        // 1. TUNNEL CONFIGURATION
         this.numSegments = 25;   // Total rings in the scene
-        this.spacing = 12;      // Distance between each ring
+        this.spacing = 15;      // Distance between each ring
         this.tunnelRadius = 18;  // How wide the tunnel is
         this.baseSpeed = 1.1;    // Speed of travel
+        this.speedLines = [];
         
         this.init();
     }
 
     init() {
         // --- CREATE TUNNEL RINGS ---
-        const ringGeo = new THREE.TorusGeometry(this.tunnelRadius, 0.15, 16, 64);
+        const ringGeo = new THREE.TorusGeometry(this.tunnelRadius, 0.15, 16, 100);
         
         for (let i = 0; i < this.numSegments; i++) {
-            const material = new THREE.MeshBasicMaterial({ 
-                color: 0x00ffff, 
-                transparent: true, 
-                opacity: 0.4 
-            });
+            const material = new THREE.MeshBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.4 });
             const ring = new THREE.Mesh(ringGeo, material);
-            
-            // Initial distribution along Z-axis
             ring.position.z = -i * this.spacing;
-            
             this.scene.add(ring);
             this.segments.push(ring);
         }
@@ -45,9 +36,7 @@ export class Wormhole {
         for (let i = 0; i < 40; i++) {
             const line = new THREE.Mesh(lineGeo, lineMat);
             this.resetSpeedLine(line);
-            // Randomly scatter them initially
-            line.position.z = Math.random() * -300; 
-            
+            line.position.z = Math.random() * -300;  // Randomly scatter them initially
             this.scene.add(line);
             this.speedLines.push(line);
         }
@@ -66,39 +55,33 @@ export class Wormhole {
 
     update(gameState) {
         const time = performance.now() * 0.001;
-        const currentSpeed = this.baseSpeed * (gameState.multiplier || 1);
 
-        // 1. UPDATE TUNNEL RINGS
+        // UPDATE TUNNEL RINGS
         this.segments.forEach((ring, i) => {
-            ring.position.z += currentSpeed;
+            ring.position.z += gameState.moveSpeed;
 
-            // Subtle rotation and "breathing" effect
             ring.rotation.z += 0.005;
             const scale = 1 + Math.sin(time + i) * 0.05;
             ring.scale.set(scale, scale, 1);
 
-            // RECYCLE LOGIC: When a ring passes the camera
-            if (ring.position.z > 15) {
-                // Teleport to the back of the line
-                ring.position.z = -((this.numSegments - 1) * this.spacing);
+            // Dynamic Curving: Evaluate X/Y based on current Z location
+            const curveMod = 2 + (gameState.difficultyLevel || 0);
+            ring.position.x = Math.sin(ring.position.z * 0.02 + time * 1.5) * curveMod;
+            ring.position.y = Math.cos(ring.position.z * 0.02 + time * 1.5) * curveMod;
+
+            if (ring.position.z > 20) {
+                // Use recycling math to prevent gaps
+                ring.position.z -= (this.numSegments * this.spacing);
                 
-                // DYNAMIC CHANGE: Shift color based on "Sector" (Score)
-                const hue = (gameState.score * 0.0001 + i * 0.02) % 1;
+                const hue = (0.6 - ((gameState.difficultyLevel || 0) * 0.05) + (i * 0.01)) % 1;
                 ring.material.color.setHSL(hue, 0.8, 0.5);
-                
-                // Add a "Curvy Path" effect by offsetting far rings
-                ring.position.x = Math.sin(time * 0.5) * 3;
-                ring.position.y = Math.cos(time * 0.5) * 3;
             }
         });
 
-        // 2. UPDATE SPEED LINES
+        // UPDATE SPEED LINES
         this.speedLines.forEach(line => {
-            line.position.z += currentSpeed * 6; // Speed lines move much faster
-            
-            if (line.position.z > 20) {
-                this.resetSpeedLine(line);
-            }
+            line.position.z += gameState.moveSpeed * 6; 
+            if (line.position.z > 20) { this.resetSpeedLine(line); }
         });
     }
 }
