@@ -23,6 +23,9 @@ export class Player {
         this.rollFrames = 0;
         this.rollDir = 1;
         this.isInvulnerable = false;
+        
+        // Multi-Engine Thruster array
+        this.thrusters = [];
 
         this.ships = [
             { time: 0.74, scale: 0.5, y: -0.8, name: "Main Shuttle" },
@@ -75,6 +78,33 @@ export class Player {
                     child.material.needsUpdate = true;
                 }
             });
+
+            // MULTI-ENGINE SETUP: Shared geometry/material for efficiency
+            const engineGeo = new THREE.ConeGeometry(0.3, 2.0, 8);
+            engineGeo.translate(0, -1.0, 0); // Origin at base
+            engineGeo.rotateX(-Math.PI / 2); // Point backward
+            
+            const engineMat = new THREE.MeshBasicMaterial({ 
+                color: 0x00ffff, 
+                transparent: true, 
+                opacity: 0.8, 
+                blending: THREE.AdditiveBlending 
+            });
+
+            // Adjusted Positions: Brought the X coordinates INWARD so they sit tighter to the fuselage
+            const positions = [
+                { x: 0, y: -0.3, z: -1.0 },     // Main fuselage (Center)
+                { x: -0.85, y: -0.75, z: -0.8 },  // Left outer nozzle (Brought inward)
+                { x: 0.85, y: -0.75, z: -0.8 }    // Right outer nozzle (Brought inward)
+            ];
+
+            positions.forEach(pos => {
+                const t = new THREE.Mesh(engineGeo, engineMat);
+                t.position.set(pos.x, pos.y, pos.z);
+                this.mesh.add(t);
+                this.thrusters.push(t);
+            });
+
             this.applyShipStats();
         });
     }
@@ -87,6 +117,11 @@ export class Player {
                 child.material.emissive.setHex(0xff0000); 
             }
         });
+        
+        // Flash all engine plumes red simultaneously
+        if (this.thrusters.length > 0) {
+            this.thrusters.forEach(t => t.material.color.setHex(0xff0000)); 
+        }
 
         setTimeout(() => {
             if (this.mesh) {
@@ -95,6 +130,9 @@ export class Player {
                         child.material.emissive.setHex(0x00ffff); 
                     }
                 });
+                if (this.thrusters.length > 0) {
+                    this.thrusters.forEach(t => t.material.color.setHex(0x00ffff)); 
+                }
             }
         }, 200);
     }
@@ -130,9 +168,8 @@ export class Player {
         
         this.camera.rotation.z = -this.camera.position.x * 0.02;
 
-        // BARREL ROLL MECHANIC
         if (this.rollFrames > 0) {
-            this.mesh.rotation.z += (Math.PI * 2 / 20) * this.rollDir; // Complete a 360 in 20 frames
+            this.mesh.rotation.z += (Math.PI * 2 / 20) * this.rollDir; 
             this.rollFrames--;
             this.isInvulnerable = true;
         } else {
@@ -142,6 +179,16 @@ export class Player {
             
             const targetRoll = keys.a ? 0.4 : (keys.d ? -0.4 : 0);
             this.mesh.rotation.z = THREE.MathUtils.lerp(this.mesh.rotation.z, targetRoll, 0.1);
+        }
+
+        // UPDATE ALL THRUSTERS: Shared animation logic
+        if (this.thrusters.length > 0) {
+            this.thrusters.forEach(t => {
+                const tLen = keys.shift ? 2.5 : (keys[' '] ? 0.3 : 1.0 + Math.random() * 0.4);
+                const tWid = keys.shift ? 1.5 : 0.8 + Math.random() * 0.2;
+                t.scale.set(tWid, tWid, tLen);
+                t.material.opacity = 0.4 + Math.random() * 0.6;
+            });
         }
     }
 
