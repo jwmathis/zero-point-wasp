@@ -2,11 +2,7 @@
 body { margin: 0; overflow: hidden; background: #000; font-family: 'Courier New', Courier, monospace; box-sizing: border-box; }
 
 canvas { display: block; position: absolute; top: 0; left: 0; z-index: 1; cursor: none; }
-#splash-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-    background: radial-gradient(circle, #0a0a0a 0%, #000 100%);
-    display: flex; justify-content: center; align-items: center; z-index: 9999; transition: opacity 1.0s ease;
-}
+#splash-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, #0a0a0a 0%, #000 100%); display: flex; justify-content: center; align-items: center; z-index: 9999; transition: opacity 1.0s ease; }
 
 /* Cinematic Glitch Effect */
 .glitch {
@@ -57,7 +53,6 @@ canvas { display: block; position: absolute; top: 0; left: 0; z-index: 1; cursor
     transition: opacity 1.0s ease;
 }
 
-/* Cinematic Glitch Effect */
 .glitch {
     font-size: 5rem;
     font-weight: bold;
@@ -111,7 +106,6 @@ label { display: block; font-size: 12px; margin-bottom: 5px; text-shadow: 0 0 8p
 
 .bar-bg { width: 200px; height: 10px; background: rgba(0, 40, 60, 0.5); border: 1px solid #00F2FF; box-shadow: 0 0 10px rgba(0, 242, 255, 0.2); }
 
-/* HOW TO PLAY SCREEN STYLING */
 .instructions {
     background: rgba(0, 20, 40, 0.8);
     border: 1px solid #00F2FF;
@@ -139,7 +133,6 @@ label { display: block; font-size: 12px; margin-bottom: 5px; text-shadow: 0 0 8p
 @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
 .segment:not(.active) { border-color: rgba(0, 242, 255, 0.3); animation: pulse 2s infinite ease-in-out; }
 
-/* REBUILT CROSSHAIR */
 #crosshair {
     position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
     width: 34px; height: 34px; border: 2px solid rgba(0, 242, 255, 0.6);
@@ -161,7 +154,6 @@ label { display: block; font-size: 12px; margin-bottom: 5px; text-shadow: 0 0 8p
 #crosshair.hit { transform: translate(-50%, -50%) scale(1.3); border-color: #ff0055; }
 #crosshair.hit::after { background: #ff0055; box-shadow: 0 0 8px #ff0055; }
 
-/* HAZES */
 #damage-haze {
     position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
     pointer-events: none; z-index: 2; transition: opacity 0.15s ease-in-out; opacity: 0;

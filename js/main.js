@@ -95,6 +95,7 @@ const player = new Player(scene, camera, hazeEl);
 const powerUps = new PowerUpSystem(scene);
 
 window.player = player;
+window.projectiles = projectiles;
 
 camera.position.set(0, 0, 5);
 camera.rotation.order = 'YXZ';
@@ -293,9 +294,7 @@ function animate() {
     enemies.checkHits(projectiles);
     checkGameOver();
 
-    if (gameState.multiplier < 5) {
-        gameState.multiplier += 0.002; 
-    }
+    if (gameState.multiplier < 5) { gameState.multiplier += 0.002; }
 
     document.getElementById('score-display').innerText = gameState.score.toString().padStart(6, '0');
 

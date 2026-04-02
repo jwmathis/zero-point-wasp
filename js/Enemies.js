@@ -58,6 +58,7 @@ export class EnemySystem {
     }
 
     checkHits(projectileSystem) {
+        // --- 1. NORMAL BOLT COLLISIONS ---
         for (let bIdx = projectileSystem.bolts.length - 1; bIdx >= 0; bIdx--) {
             const bolt = projectileSystem.bolts[bIdx];
             for (let eIdx = this.enemies.length - 1; eIdx >= 0; eIdx--) {
@@ -72,6 +73,32 @@ export class EnemySystem {
                     const ch = document.getElementById('crosshair');
                     if (ch) { ch.classList.add('hit'); setTimeout(() => ch.classList.remove('hit'), 100); }
                     break;
+                }
+            }
+        }
+
+        // --- 2. MASSIVE SURGE BEAM COLLISIONS ---
+        if (projectileSystem.surges) {
+            for (let sIdx = projectileSystem.surges.length - 1; sIdx >= 0; sIdx--) {
+                const surge = projectileSystem.surges[sIdx];
+                for (let eIdx = this.enemies.length - 1; eIdx >= 0; eIdx--) {
+                    const enemy = this.enemies[eIdx];
+                    // Distance of 400 = Radius of 20! Clears out the entire tunnel!
+                    if (surge.position.distanceToSquared(enemy.position) < 400) {
+                        const pts = enemy.userData.type === 'striker' ? 500 : (enemy.userData.type === 'seeker' ? 250 : 100);
+                        window.gameState.score += pts * Math.floor(window.gameState.multiplier);
+                        
+                        // Surge death triggers a hot purple explosion
+                        this.createExplosion(enemy.position, 0xff00ff); 
+                        if (window.createScorePopup) window.createScorePopup(enemy.position, pts);
+                        
+                        this.scene.remove(enemy); 
+                        this.enemies.splice(eIdx, 1);
+                        // Do NOT remove the surge beam! It pierces through everything!
+                        
+                        const ch = document.getElementById('crosshair');
+                        if (ch) { ch.classList.add('hit'); setTimeout(() => ch.classList.remove('hit'), 100); }
+                    }
                 }
             }
         }

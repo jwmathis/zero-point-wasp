@@ -4,13 +4,12 @@ export class PowerUpSystem {
     constructor(scene) {
         this.scene = scene;
         this.powerUps = [];
-
+        
         this.geos = {
             health: new THREE.TorusGeometry(0.5, 0.2, 8, 24),
-            surge: new THREE.IcosahedronGeometry(0.7, 0) // Renamed 'ammo' to 'surge'
+            surge: new THREE.IcosahedronGeometry(0.7, 0) 
         };
 
-        // Materials with a neon glow
         this.mats = {
             surge: new THREE.MeshBasicMaterial({ color: 0xFF0055, wireframe: true }),
             health: new THREE.MeshBasicMaterial({ color: 0x00FFFF, wireframe: true }),
@@ -46,7 +45,8 @@ export class PowerUpSystem {
             const distSq = p.position.distanceToSquared(shipPos);
             
             if (distSq < 12) { 
-                this.collect(p, gameState, updateHUD);
+                // Passed camera here to use for the beam trajectory
+                this.collect(p, gameState, updateHUD, camera);
                 this.remove(p, i);
                 continue;
             }
@@ -57,15 +57,17 @@ export class PowerUpSystem {
         }
     }
 
-    collect(p, gameState, updateHUD) {
-        if (p.userData.type === 'surge') {
-            // Replaced ammo refill with a massive score and multiplier boost!
+    collect(p, gameState, updateHUD, camera) {
+        if (p.userData.type === 'surge' || p.userData.type === 'ammo') { 
             gameState.score += 1000;
             gameState.multiplier = 5.0;
             if (window.createScorePopup) window.createScorePopup(p.position, 1000);
             
+            // FIRE THE MASSIVE SURGE CANNON
+            if (window.projectiles) window.projectiles.fireSurge(camera);
+
             const reloadHaze = document.getElementById('reload-haze');
-            if(reloadHaze) {
+            if (reloadHaze) {
                 reloadHaze.style.display = 'block';
                 setTimeout(() => { reloadHaze.style.display = 'none'; }, 1000);
             }
@@ -73,13 +75,13 @@ export class PowerUpSystem {
         } else if (p.userData.type === 'health') {
             gameState.health = Math.min(gameState.health + 25, 100);
             const healHaze = document.getElementById('heal-haze');
-            if(healHaze) {
+            if (healHaze) {
                 healHaze.style.display = 'block';
                 setTimeout(() => { healHaze.style.display = 'none'; }, 1000);
             }
         }
         if (window.sfx && window.sfx.powerup) window.sfx.powerup.play();
-        if(updateHUD) updateHUD();
+        if (updateHUD) updateHUD();
     }
 
     remove(p, index) {

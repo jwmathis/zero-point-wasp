@@ -24,6 +24,9 @@ export class Player {
         this.rollDir = 1;
         this.isInvulnerable = false;
         
+        // Damage Flash State
+        this.isFlashing = false;
+        
         // Multi-Engine Thruster array
         this.thrusters = [];
 
@@ -79,10 +82,9 @@ export class Player {
                 }
             });
 
-            // MULTI-ENGINE SETUP: Shared geometry/material for efficiency
             const engineGeo = new THREE.ConeGeometry(0.3, 2.0, 8);
-            engineGeo.translate(0, -1.0, 0); // Origin at base
-            engineGeo.rotateX(-Math.PI / 2); // Point backward
+            engineGeo.translate(0, -1.0, 0); 
+            engineGeo.rotateX(-Math.PI / 2); 
             
             const engineMat = new THREE.MeshBasicMaterial({ 
                 color: 0x00ffff, 
@@ -91,11 +93,10 @@ export class Player {
                 blending: THREE.AdditiveBlending 
             });
 
-            // Adjusted Positions: Brought the X coordinates INWARD so they sit tighter to the fuselage
             const positions = [
-                { x: 0, y: -0.3, z: -1.0 },     // Main fuselage (Center)
-                { x: -0.85, y: -0.75, z: -0.8 },  // Left outer nozzle (Brought inward)
-                { x: 0.85, y: -0.75, z: -0.8 }    // Right outer nozzle (Brought inward)
+                { x: 0, y: -0.3, z: -1.0 },     
+                { x: -0.9, y: -0.5, z: -0.8 },  
+                { x: 0.9, y: -0.5, z: -0.8 }    
             ];
 
             positions.forEach(pos => {
@@ -112,27 +113,27 @@ export class Player {
     flashRed() {
         if (!this.mesh) return;
 
+        this.isFlashing = true; // Lock color updates
+
         this.mesh.traverse(child => {
             if (child.isMesh && child.material && child.material.emissive) {
                 child.material.emissive.setHex(0xff0000); 
             }
         });
         
-        // Flash all engine plumes red simultaneously
         if (this.thrusters.length > 0) {
             this.thrusters.forEach(t => t.material.color.setHex(0xff0000)); 
         }
 
         setTimeout(() => {
+            this.isFlashing = false; // Unlock color updates
             if (this.mesh) {
                 this.mesh.traverse(child => {
                     if (child.isMesh && child.material && child.material.emissive) {
                         child.material.emissive.setHex(0x00ffff); 
                     }
                 });
-                if (this.thrusters.length > 0) {
-                    this.thrusters.forEach(t => t.material.color.setHex(0x00ffff)); 
-                }
+                // The update loop will automatically fix the thruster colors on the next frame!
             }
         }, 200);
     }
@@ -181,13 +182,25 @@ export class Player {
             this.mesh.rotation.z = THREE.MathUtils.lerp(this.mesh.rotation.z, targetRoll, 0.1);
         }
 
-        // UPDATE ALL THRUSTERS: Shared animation logic
+        // Thrusters Color Shift Logic
         if (this.thrusters.length > 0) {
             this.thrusters.forEach(t => {
-                const tLen = keys.shift ? 2.5 : (keys[' '] ? 0.3 : 1.0 + Math.random() * 0.4);
-                const tWid = keys.shift ? 1.5 : 0.8 + Math.random() * 0.2;
+                // Keep the physical length of the cones relatively stable
+                const tLen = keys[' '] ? 0.3 : 1.0 + Math.random() * 0.4;
+                const tWid = keys[' '] ? 0.5 : 0.8 + Math.random() * 0.2;
                 t.scale.set(tWid, tWid, tLen);
                 t.material.opacity = 0.4 + Math.random() * 0.6;
+
+                // Change colors based on flight mode (if not currently flashing from damage)
+                if (!this.isFlashing) {
+                    if (keys.shift) {
+                        t.material.color.setHex(0xff00ff); // Hot Magenta (Boost)
+                    } else if (keys[' ']) {
+                        t.material.color.setHex(0x0055ff); // Deep Blue (Brake)
+                    } else {
+                        t.material.color.setHex(0x00ffff); // Cyan (Normal)
+                    }
+                }
             });
         }
     }
