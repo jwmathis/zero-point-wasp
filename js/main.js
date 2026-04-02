@@ -10,42 +10,36 @@ import { EnemySystem } from './Enemies.js';
 import { Player } from './Player.js';
 import { PowerUpSystem } from './PowerUps.js';
 
-
 // --- INITIAL GAME STATE ---
 const gameState = {
     health: 100,
-    ammo: 5,
-    maxAmmo: 5,
-    lastRegen: 0,
-    regenInterval: 1500, // Recharge 1 ammo segment every 1.5s
     isPaused: false,
     hasStarted: false,
     isDead: false,
-    keys: { w: false, a: false, s: false, d: false, t: false},
-    moveSpeed: 0.5,
+   keys: { w: false, a: false, s: false, d: false, q: false, e: false, shift: false, ' ': false },
+    moveSpeed: 0.4, 
     score: 0,
     multiplier: 1,
     lastEnemySpawn: 0,
     lastPowerUpSpawn: 0,
-    twinShot: false // Track single/twin shot
+    twinShot: false 
 };
-window.gameState = gameState;  // Global access for EnemySystem and ProjectileSystem to read state
+window.gameState = gameState;  
 
 const listener = new THREE.AudioListener();
 const soundLoader = new THREE.AudioLoader();
 window.sfx = {};
-function loadSFX(name, path, volume =0.5, loop=false) {
+function loadSFX(name, path, volume = 0.5, loop = false) {
     const sound = new THREE.Audio(listener);
     soundLoader.load(path, (buffer) => {
         sound.setBuffer(buffer);
         sound.setLoop(loop);
         sound.setVolume(volume);
-    })
+    });
     sfx[name] = sound;
 }
 
 // --- UI ELEMENT CACHING ---
-// Caching elements prevents expensive DOM lookups every frame
 const hudHealth = document.getElementById('health-bar');
 const hazeEl = document.getElementById('damage-haze');
 const startScreen = document.getElementById('start-screen');
@@ -55,72 +49,72 @@ const howToPlayScreen = document.getElementById('how-to-play-screen');
 const splashOverlay = document.getElementById('splash-overlay');
 const initializeBtn = document.getElementById('initialize-btn');
 
-
 loadSFX('laser', './assets/sounds/laser.wav', 0.3);
 loadSFX('explosion', './assets/sounds/explosion.wav', 0.6);
 loadSFX('powerup', './assets/sounds/powerup.wav', 0.5);
 loadSFX('intro', './assets/sounds/game_intro.wav', 0.5, true);
 loadSFX('theme', './assets/sounds/game_theme.wav', 0.5, true);
+loadSFX('player_damage', './assets/sounds/player_damage.wav', 0.4);
 
 // --- SCENE SETUP ---
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 
-const light = new THREE.AmbientLight(0xffffff, 0.5); // Base light for non-metallic parts
+const light = new THREE.AmbientLight(0xffffff, 0.5); 
 scene.add(light);
-const sunLight = new THREE.DirectionalLight(0xffffff, 2.5); // Directional Light is the "Sun"
+const sunLight = new THREE.DirectionalLight(0xffffff, 2.5); 
 sunLight.position.set(5, 10, 7.5);
 scene.add(sunLight);
 
 const playerLight = new THREE.PointLight(0x00ffff, 10, 50); 
 camera.add(playerLight); 
-playerLight.position.set(0, 0, -3); // Moved to -3 so it's right in front of the ship
+playerLight.position.set(0, 0, -3); 
 
 const headlight = new THREE.PointLight(0xffffff, 5, 20); 
 camera.add(headlight);
-headlight.position.set(0, 0, -2); // Directly illuminating the hull
+headlight.position.set(0, 0, -2); 
 
 const pmremGenerator = new THREE.PMREMGenerator(renderer);
 pmremGenerator.compileEquirectangularShader();
-scene.environment = pmremGenerator.fromScene(new THREE.Scene()).texture; // Use a neutral scene for reflections so the metal actually "shines"
+scene.environment = pmremGenerator.fromScene(new THREE.Scene()).texture; 
 
 scene.background = new THREE.Color(0x050505);
 scene.fog = new THREE.FogExp2(0x000000, 0.015);
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
-scene.add(camera); // Add camera to scene because the player ship is parented to it
+scene.add(camera); 
 camera.add(listener);
 
 // --- MODULE INITIALIZATION ---
 const wormhole = new Wormhole(scene);
 const projectiles = new ProjectileSystem(scene);
 const enemies = new EnemySystem(scene);
-const player = new Player(scene, camera, hazeEl); // The Wasp Pilot
+const player = new Player(scene, camera, hazeEl); 
 const powerUps = new PowerUpSystem(scene);
 
-// Set initial pilot orientation
+window.player = player;
+
 camera.position.set(0, 0, 5);
 camera.rotation.order = 'YXZ';
 
-// --- STARFIELD (Atmospheric Background) ---
+// --- STARFIELD ---
 const starGeometry = new THREE.BufferGeometry();
 const starVertices = [];
-for (let i = 0; i < 2000; i++) {
+const starSpeeds = [];
+for (let i = 0; i < 4000; i++) {
     starVertices.push((Math.random() - 0.5) * 1000, (Math.random() - 0.5) * 1000, (Math.random() - 0.5) * 1000);
+    starSpeeds.push(1 + Math.random() * 3); 
 }
 starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+starGeometry.setAttribute('speed', new THREE.Float32BufferAttribute(starSpeeds, 1));
 const stars = new THREE.Points(starGeometry, new THREE.PointsMaterial({ color: 0xFFFFFF }));
 scene.add(stars);
 
 // --- CORE UTILITY FUNCTIONS ---
 function updateHUD() {
-    hudHealth.style.width = `${gameState.health}%`; // Sync the HTML health bar with internal state
-    const segments = document.querySelectorAll('.segment'); // Sync energy segments
-    segments.forEach((seg, i) => {
-        i < gameState.ammo ? seg.classList.add('active') : seg.classList.remove('active');
-    });
+    hudHealth.style.width = `${gameState.health}%`; 
 }
 
 function checkGameOver() {
@@ -128,17 +122,19 @@ function checkGameOver() {
         gameState.isDead = true;
         gameState.health = 0;
         updateHUD();
-        document.getElementById('final-score-value').innerText = gameState.score; // Dsiplay final score
-        document.exitPointerLock(); // Release mouse control
-        gameOverScreen.style.display = 'flex'; // Trigger Pilot KIA screen
+        document.getElementById('final-score-value').innerText = gameState.score; 
+        document.exitPointerLock(); 
+        gameOverScreen.style.display = 'flex'; 
     }
 }
 
 function updateStars() {
     const positions = stars.geometry.attributes.position.array;
+    const speeds = stars.geometry.attributes.speed.array;
     for (let i = 0; i < positions.length; i += 3) {
-        positions[i + 2] += 2.5; // Move stars toward camera
-        if (positions[i + 2] > 10) positions[i + 2] = -1000; // Reset star to distance
+        const speedIndex = i / 3;
+        positions[i + 2] += (2.0 * speeds[speedIndex]); 
+        if (positions[i + 2] > 10) positions[i + 2] = -1000; 
     }
     stars.geometry.attributes.position.needsUpdate = true;
 }
@@ -159,16 +155,16 @@ window.createScorePopup = function(position, points) {
 }
 
 // --- INPUT HANDLERS ---
-
-initializeBtn.addEventListener('click', () => {
-    if (listener.context.state === 'suspended') { listener.context.resume(); }
-    if (window.sfx.intro && !window.sfx.intro.isPlaying) { window.sfx.intro.play(); }
-    splashOverlay.style.opacity = '0';
-    setTimeout(() => { splashOverlay.style.display = 'none'; }, 1000);
-});
+if (initializeBtn) {
+    initializeBtn.addEventListener('click', () => {
+        if (listener.context.state === 'suspended') { listener.context.resume(); }
+        if (window.sfx.intro && !window.sfx.intro.isPlaying) { window.sfx.intro.play(); }
+        splashOverlay.style.opacity = '0';
+        setTimeout(() => { splashOverlay.style.display = 'none'; }, 1000);
+    });
+}
 
 document.getElementById('start-button').addEventListener('click', () => {
-
     if (window.sfx.intro && window.sfx.intro.isPlaying) window.sfx.intro.stop();
     if (window.sfx.theme && !window.sfx.theme.isPlaying) window.sfx.theme.play();
 
@@ -177,18 +173,22 @@ document.getElementById('start-button').addEventListener('click', () => {
     setTimeout(() => { gameState.hasStarted = true; }, 100);
 });
 
-document.getElementById('how-to-play-button').addEventListener('click', () => {
-    if (listener.context.state === 'suspended') { listener.context.resume(); }
-    if (sfx.intro && !sfx.intro.isPlaying && !gameState.hasStarted) { sfx.intro.play(); }
+if (document.getElementById('how-to-play-button')) {
+    document.getElementById('how-to-play-button').addEventListener('click', () => {
+        if (listener.context.state === 'suspended') { listener.context.resume(); }
+        if (sfx.intro && !sfx.intro.isPlaying && !gameState.hasStarted) { sfx.intro.play(); }
 
-    startScreen.style.display = 'none';
-    howToPlayScreen.style.display = 'flex';
-});
+        startScreen.style.display = 'none';
+        howToPlayScreen.style.display = 'flex';
+    });
+}
 
-document.getElementById('back-button').addEventListener('click', () => {
-    howToPlayScreen.style.display = 'none';
-    startScreen.style.display = 'flex';
-});
+if (document.getElementById('back-button')) {
+    document.getElementById('back-button').addEventListener('click', () => {
+        howToPlayScreen.style.display = 'none';
+        startScreen.style.display = 'flex';
+    });
+}
 
 document.getElementById('resume-button').addEventListener('click', () => {
     gameState.isPaused = false;
@@ -218,64 +218,65 @@ window.addEventListener('keyup', (e) => {
     if (gameState.keys.hasOwnProperty(key)) gameState.keys[key] = false;
 });
 
+let lastFireTime = 0;
 window.addEventListener('mousedown', (e) => {
-    // Guard clause: Prevent shooting while dead, paused, or clicking UI
     if (!gameState.hasStarted || gameState.isPaused || gameState.isDead) return;
     if (e.target.tagName === 'BUTTON' || e.target.closest("#ui-layer")) return;
 
-    if (gameState.ammo > 0) {
+    const now = performance.now();
+    if (now - lastFireTime > 150) {
         projectiles.fire(camera);
-        camera.position.z += 0.1; // Slight kickback when shooting
+        camera.position.z += 0.1; 
         setTimeout(() => { camera.position.z -= 0.1; }, 50);
-        gameState.ammo--;
-        updateHUD();
+        lastFireTime = now;
+        
         if (sfx.laser) { sfx.laser.isPlaying && sfx.laser.stop(); sfx.laser.play(); }
-
-        // Weapon flash effect
         light.intensity = 5.0;
         setTimeout(() => { light.intensity = 1.5; }, 100);
     }
 });
 
 
-
 // --- MAIN ANIMATION LOOP ---
-let lastDifficultyLevel = 0; // Track last difficulty level to trigger level-up effects
+let lastDifficultyLevel = 0; 
 
 function animate() {
     requestAnimationFrame(animate);
     if (!gameState.hasStarted || gameState.isPaused || gameState.isDead) return;
 
     const now = performance.now();
-    const difficultyLevel = Math.floor(gameState.score / 1000); // Increaes difficulty every 1000 pts
-    gameState.difficultyLevel = difficultyLevel; // Save to state for other modules
+    const timeSec = now * 0.001;
+    
+    const difficultyLevel = Math.floor(timeSec / 20); 
+    gameState.difficultyLevel = difficultyLevel; 
 
-    // Enable Twin Shot if score is high enough
     if (gameState.score >= 3000 && !gameState.twinShot) { gameState.twinShot = true; }
-    //if (Math.floor(gameState.score / 1000)) { gameState.maxAmmo++; gameState.ammo++; }
-    // Scale speed
-    gameState.moveSpeed = Math.min(1.3, 0.2 * (1 + difficultyLevel * 0.08));
-    const spawnInterval = Math.max(800, 1500 * (1 - difficultyLevel * 150));
 
-    // Regeneration Logic: Regenerate ammo over time if not at max
-    if (gameState.ammo < gameState.maxAmmo && now - gameState.lastRegen > gameState.regenInterval) {
-        gameState.ammo++;
-        gameState.lastRegen = now;
-        updateHUD();
+    // DEDICATED BOOST/BRAKE SYSTEM: Shift speeds up, Spacebar slows down
+    const baseSpeed = Math.min(1.0, 0.4 + (difficultyLevel * 0.05));
+    if (gameState.keys.shift) {
+        gameState.moveSpeed = baseSpeed * 1.8; // Boost
+    } else if (gameState.keys[' ']) {
+        gameState.moveSpeed = baseSpeed * 0.4; // Brake
+    } else {
+        gameState.moveSpeed = baseSpeed;
     }
 
+    const spawnInterval = Math.max(1000, 3000 - (difficultyLevel * 200));
+
+    const curveMod = 1.5 + (difficultyLevel * 0.2);
+    const tunnelX = Math.sin(timeSec * 1.5) * curveMod;
+    const tunnelY = Math.cos(timeSec * 1.5) * curveMod;
+
     // UPDATE SYSTEMS
-    wormhole.speed = gameState.moveSpeed;
     wormhole.update(gameState);
     updateStars();
-    player.update(gameState.keys, gameState, updateHUD);
+    player.update(gameState.keys, gameState, updateHUD, tunnelX, tunnelY);
     powerUps.update(camera, gameState, updateHUD);
     projectiles.update();
 
-    // Enemy Spawning logic
     if (now - gameState.lastEnemySpawn > spawnInterval) {
-        // Once past 1000 points, 40% chance to spawn a formation instead of a single enemy
-        if (gameState.score > 1000 && Math.random() < 0.40) {
+        if (gameState.score > 500 && Math.random() < 0.60) {
             enemies.spawnFormation('striker');
         } else {
             enemies.spawnRandom();
@@ -283,30 +284,32 @@ function animate() {
         gameState.lastEnemySpawn = now;
     }
 
-    if (now - gameState.lastPowerUpSpawn > 20000) { // Spawn power up every 20s
+    if (now - gameState.lastPowerUpSpawn > 20000) { 
         powerUps.spawn();
         gameState.lastPowerUpSpawn = now;
     }
 
-    enemies.update(camera, now, gameState);
+    enemies.update(camera, now, gameState, updateHUD);
     enemies.checkHits(projectiles);
     checkGameOver();
 
-    // Passive scoring: +1 point per frame while alive
-    //gameState.score += 1;
+    if (gameState.multiplier < 5) {
+        gameState.multiplier += 0.002; 
+    }
+
     document.getElementById('score-display').innerText = gameState.score.toString().padStart(6, '0');
 
-    // COLLISION PHASE
-    // Check if player bolts hit any enemies
-    enemies.checkHits(projectiles);
+    // Dynamic FOV expands significantly during a Boost
+    const targetFOV = 100 + (gameState.moveSpeed * 25);
+    camera.fov = THREE.MathUtils.lerp(camera.fov, targetFOV, 0.05);
+    camera.updateProjectionMatrix();
 
-    // Level up visual
     if (difficultyLevel > lastDifficultyLevel) {
         hazeEl.classList.add('active'); 
         hazeEl.style.background = "radial-gradient(circle, transparent 20%, rgba(255, 255, 255, 0.4) 100%)";
         setTimeout(() => { 
             hazeEl.classList.remove('active'); 
-            hazeEl.style.background = ""; // Restore to the CSS default red
+            hazeEl.style.background = ""; 
         }, 150);
         lastDifficultyLevel = difficultyLevel;
     }
@@ -333,8 +336,8 @@ window.addEventListener('mousemove', (e) => {
         camera.rotation.y -= e.movementX * sensitivity;
         camera.rotation.x -= e.movementY * sensitivity;
 
-        camera.rotation.y = THREE.MathUtils.clamp(camera.rotation.y, -0.6, 0.6); // Look Left/Right limit
-        camera.rotation.x = THREE.MathUtils.clamp(camera.rotation.x, -0.5, 0.5); // Look Up/Down limit
+        camera.rotation.y = THREE.MathUtils.clamp(camera.rotation.y, -0.6, 0.6); 
+        camera.rotation.x = THREE.MathUtils.clamp(camera.rotation.x, -0.5, 0.5); 
     }
     crosshair.style.display = 'block';
 });

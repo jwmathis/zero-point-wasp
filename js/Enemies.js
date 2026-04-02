@@ -1,6 +1,3 @@
-/**
- * Enemies.js - Manages enemy spawning, behavior, and collision.
- */
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
@@ -10,271 +7,194 @@ export class EnemySystem {
         this.enemies = [];
         this.enemyProjectiles = [];
         this.particles = [];
-        
-        this.strikerModel = null;
-        this.seekerModel = null;
-        this.mineModel = null;
-
+        this.models = { striker: null, seeker: null, mine: null };
         this.loader = new GLTFLoader();
         this.textureLoader = new THREE.TextureLoader();
-
-        this.geos = { // Default geometries if models aren't loaded yet
-            mine: new THREE.IcosahedronGeometry(1, 0),
-            seeker: new THREE.OctahedronGeometry(1.2, 0),
-            striker: new THREE.TetrahedronGeometry(1.5, 0)
-        };
-        
+        this.geos = { mine: new THREE.IcosahedronGeometry(1, 0), seeker: new THREE.OctahedronGeometry(1.2, 0), striker: new THREE.TetrahedronGeometry(1.5, 0) };
         this.loadAssets();
     }
 
     loadAssets() {
-        // --- STRIKER ---
-        const strikerTex = this.textureLoader.load('./assets/future_drone/textures/Material_1001_baseColor.png');
-        this.loader.load('./assets/future_drone/scene.gltf', (gltf) => {
-            this.strikerModel = this.prepareModel(gltf.scene, strikerTex, 0.1);
-        });
-
-        // --- SEEKER ---
-        const seekerTex = this.textureLoader.load('./assets/scifi_drone/textures/M2Robot_baseColor>.png');
-        this.loader.load('./assets/scifi_drone/scene.gltf', (gltf) => {
-            this.seekerModel = this.prepareModel(gltf.scene, seekerTex, 0.1);
-        });
-
-        // --- MINE ---
-        const mineTex = this.textureLoader.load('./assets/mine/Textures/material_1_baseColor.png');
-        this.loader.load('./assets/mine/crate.gltf', (gltf) => {
-            this.mineModel = this.prepareModel(gltf.scene, mineTex, 0.6);
-        });
-    }
-
-    prepareModel(scene, texture, scale) {
-        scene.traverse((child) => {
-            if (child.isMesh) {
-                child.material = new THREE.MeshStandardMaterial({
-                    map: texture, metalness: 0.6, roughness: 0.4
-                });
-                child.frustumCulled = false;
-            }
-        });
-        scene.scale.set(scale, scale, scale);
-        return scene;
+        const load = (path, texPath, type, scale) => {
+            const tex = this.textureLoader.load(texPath);
+            this.loader.load(path, (gltf) => {
+                gltf.scene.traverse((c) => { if (c.isMesh) { c.material = new THREE.MeshStandardMaterial({ map: tex, metalness: 0.6, roughness: 0.4 }); c.frustumCulled = false; }});
+                gltf.scene.scale.set(scale, scale, scale);
+                this.models[type] = gltf.scene;
+            });
+        };
+        load('./assets/future_drone/scene.gltf', './assets/future_drone/textures/Material_1001_baseColor.png', 'striker', 0.15);
+        load('./assets/scifi_drone/scene.gltf', './assets/scifi_drone/textures/M2Robot_baseColor>.png', 'seeker', 0.15);
+        load('./assets/mine/crate.gltf', './assets/mine/Textures/material_1_baseColor.png', 'mine', 0.6);
     }
 
     spawnRandom() {
         const types = ['mine', 'seeker', 'striker'];
-        const type = types[Math.floor(Math.random() * types.length)];
-        this.spawn(type, new THREE.Vector3((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 30, -150));
+        this.spawn(types[Math.floor(Math.random() * types.length)], new THREE.Vector3((Math.random() - 0.5) * 30, (Math.random() - 0.5) * 30, -250));
     }
 
     spawn(type, position) {
-        let mesh;
-        if (type === 'striker' && this.strikerModel) {
-            mesh = this.strikerModel.clone();
-        } else if (type === 'seeker' && this.seekerModel) {
-            mesh = this.seekerModel.clone();
-        } else if (type === 'mine' && this.mineModel) {
-            mesh = this.mineModel.clone();
-            mesh.scale.multiplyScalar(0.8 + Math.random() * 0.4);
-        } else {
-            const material = new THREE.MeshBasicMaterial({
-                color: type === 'striker' ? 0xFF00FF : 0xFF5500, wireframe: true
-            });
-            mesh = new THREE.Mesh(this.geos[type], material);
-        }
-
+        let mesh = this.models[type] ? this.models[type].clone() : new THREE.Mesh(this.geos[type], new THREE.MeshBasicMaterial({ color: type === 'striker' ? 0xFF00FF : 0xFF5500, wireframe: true }));
+        if (type === 'mine' && this.models.mine) mesh.scale.multiplyScalar(0.8 + Math.random() * 0.4);
         mesh.position.copy(position);
         mesh.userData = { type, health: 1, lastShot: 0 };
         this.scene.add(mesh);
         this.enemies.push(mesh);
-    }
-
-    checkHits(projectileSystem) {
-            for (let bIdx = projectileSystem.bolts.length - 1; bIdx >= 0; bIdx--) {
-                const bolt = projectileSystem.bolts[bIdx];
-                
-                for (let eIdx = this.enemies.length - 1; eIdx >= 0; eIdx--) {
-                    const enemy = this.enemies[eIdx];
-                    
-                    if (bolt.position.distanceToSquared(enemy.position) < 25) { // Change this value for hitbox size (3.5^2 = 12.25)
-                        const pointsMap = { 'mine': 100, 'seeker': 250, 'striker': 500 };
-                        const points = pointsMap[enemy.userData.type] || 100;
-                        
-                        window.gameState.score += points;
-                        
-                        const enemyColor = enemy.userData.type === 'striker' ? 0xff00ff : 0x00ffff;
-                        this.createExplosion(enemy.position, enemyColor);
-                        
-                        if (window.createScorePopup) window.createScorePopup(enemy.position, points);
-
-                        this.removeEnemy(enemy, eIdx);
-                        this.scene.remove(bolt);
-                        projectileSystem.bolts.splice(bIdx, 1);
-                        
-                        const ch = document.getElementById('crosshair');
-                        if(ch) {
-                            ch.classList.add('hit');
-                            setTimeout(() => ch.classList.remove('hit'), 100);
-                        }
-                        break; 
-                    }
-                }
-            }
-        }
-
-    createExplosion(position, color = 0xff0055) {
-        const geometry = new THREE.BoxGeometry(0.2, 0.2, 0.2);
-        const material = new THREE.MeshBasicMaterial({ color: color });
-
-        for (let i = 0; i < 20; i++) {
-            const particle = new THREE.Mesh(geometry, material);
-            particle.position.copy(position);
-            particle.userData.velocity = new THREE.Vector3(
-                (Math.random() - 0.5) * 0.5,
-                (Math.random() - 0.5) * 0.5,
-                (Math.random() - 0.5) * 0.5
-            );
-            particle.userData.timer = 0;
-            this.scene.add(particle);
-            this.particles.push(particle);
-            if (sfx.explosion) sfx.explosion.play();
-        }
-    }
-
-    update(camera, now, gameState) {
-
-        // Update Enemies
-        for (let index = this.enemies.length - 1; index >= 0; index--) {
-            const enemy = this.enemies[index];
-
-            // DIVING BEHAVIOR: 
-            // If it's a diver, swoop down as it gets closer to the player
-            if (enemy.userData.behavior === 'seeker' && enemy.position.z > -80) {
-                enemy.position.y -= 0.12; // Descent speed
-                enemy.rotation.x = THREE.MathUtils.lerp(enemy.rotation.x, Math.PI / 6, 0.05); // Tilt nose down
-            }
-
-            const distSq = enemy.position.distanceToSquared(camera.position);
-
-            if (enemy.userData.type === 'striker') {
-                enemy.rotation.z += 0.01; 
-                enemy.position.x += Math.sin(now * 0.003 + index) * 0.08;
-                // Fire logic
-                if (distSq < 10000 && now - enemy.userData.lastShot > 3000) { 
-                    this.fireBurst(enemy, camera);
-                    enemy.userData.lastShot = now;
-                }
-            } else if (enemy.userData.type === 'mine') {
-                enemy.rotation.y += 0.02; 
-                enemy.rotation.x += 0.01;
-            } else if (enemy.userData.type === 'seeker') {
-                //enemy.rotation.z = Math.sin(Date.now() * 0.005) * 0.2;
-                enemy.rotation.z += 0.01; 
-                const dir = new THREE.Vector3().subVectors(camera.position, enemy.position).normalize();
-                enemy.position.addScaledVector(dir, 0.25);
-            }
-
-            enemy.position.z += window.gameState.moveSpeed * 1.1;
-
-            if (distSq < 9.0) { // Crash distance
-                this.damagePlayer(enemy.userData.type);
-                this.removeEnemy(enemy, index);
-                continue;
-            }
-            if (enemy.position.z > 10) this.removeEnemy(enemy, index);
-        }
-
-        // Update Particles
-        for (let i = this.particles.length - 1; i >= 0; i--) {
-            const p = this.particles[i];
-            p.position.add(p.userData.velocity);
-            p.userData.timer++;
-            p.scale.multiplyScalar(0.95);
-
-            if (p.userData.timer > 30 || p.scale.x < 0.01) {
-                this.scene.remove(p);
-                this.particles.splice(i, 1);
-            }
-        }
-
-        // Update Enemy Bullets
-        for (let i = this.enemyProjectiles.length - 1; i >= 0; i--) {
-            const p = this.enemyProjectiles[i];
-            p.position.addScaledVector(p.userData.dir, 0.6);
-            
-            if (p.position.distanceToSquared(camera.position) < 1.44) { // 1.5 units hitbox, squared for performance, decrease if you want it easier
-                this.damagePlayer('bolt');
-                this.scene.remove(p);
-                this.enemyProjectiles.splice(i, 1);
-            } else if (p.position.z > 20) {
-                this.scene.remove(p);
-                this.enemyProjectiles.splice(i, 1);
-            }
-        }
+        return mesh;
     }
 
     spawnFormation(type = 'striker') {
-        const formations = {
-            'V': [{x: 0, y: 0, z: 0}, {x: -8, y: 4, z: -15}, {x: 8, y: 4, z: -15}],
-            'Line': [{x: -10, y: 0, z: 0}, {x: 0, y: 0, z: 0}, {x: 10, y: 0, z: 0}]
-        };
-
-        const keys = Object.keys(formations);
-        const selectedPattern = formations[keys[Math.floor(Math.random() * keys.length)]];
+        const formations = [ [{x: 0, y: 0, z: 0}, {x: -8, y: 4, z: -15}, {x: 8, y: 4, z: -15}], [{x: -10, y: 0, z: 0}, {x: 0, y: 0, z: 0}, {x: 10, y: 0, z: 0}] ];
+        const pattern = formations[Math.floor(Math.random() * formations.length)];
         const behavior = Math.random() > 0.5 ? 'diver' : 'standard';
 
-        selectedPattern.forEach(offset => {
-            // FIX: Calculate proper position Vector before passing to spawn()
-            const spawnPos = new THREE.Vector3(
-                (Math.random() - 0.5) * 10 + offset.x,
-                (Math.random() - 0.5) * 10 + offset.y,
-                -250 + offset.z // Spawn deep in the distance
-            );
-            
-            // Use the standard spawn function so they get properly registered
-            const mesh = this.spawn(type, spawnPos);
-            
-            // Override with formation-specific stats
-            mesh.userData.behavior = behavior;
-            mesh.userData.health = 2;
+        pattern.forEach((offset, idx) => {
+            setTimeout(() => { 
+                const pos = new THREE.Vector3((Math.random() - 0.5) * 10 + offset.x, (Math.random() - 0.5) * 10 + offset.y, -250 + offset.z);
+                const mesh = this.spawn(type, pos);
+                if (mesh) { mesh.userData.behavior = behavior; mesh.userData.health = 2; }
+            }, idx * 300); 
         });
     }
 
+    checkHits(projectileSystem) {
+        for (let bIdx = projectileSystem.bolts.length - 1; bIdx >= 0; bIdx--) {
+            const bolt = projectileSystem.bolts[bIdx];
+            for (let eIdx = this.enemies.length - 1; eIdx >= 0; eIdx--) {
+                const enemy = this.enemies[eIdx];
+                if (bolt.position.distanceToSquared(enemy.position) < 16) {
+                    const pts = enemy.userData.type === 'striker' ? 500 : (enemy.userData.type === 'seeker' ? 250 : 100);
+                    window.gameState.score += pts * Math.floor(window.gameState.multiplier);
+                    this.createExplosion(enemy.position, enemy.userData.type === 'striker' ? 0xff00ff : 0x00ffff);
+                    if (window.createScorePopup) window.createScorePopup(enemy.position, pts);
+                    this.scene.remove(enemy); this.enemies.splice(eIdx, 1);
+                    this.scene.remove(bolt); projectileSystem.bolts.splice(bIdx, 1);
+                    const ch = document.getElementById('crosshair');
+                    if (ch) { ch.classList.add('hit'); setTimeout(() => ch.classList.remove('hit'), 100); }
+                    break;
+                }
+            }
+        }
+    }
+
+    createExplosion(pos, color = 0xff0055) {
+        const geo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
+        const mat = new THREE.MeshBasicMaterial({ color });
+        for (let i = 0; i < 20; i++) {
+            const p = new THREE.Mesh(geo, mat);
+            p.position.copy(pos);
+            p.userData = { timer: 0, velocity: new THREE.Vector3((Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.5, (Math.random() - 0.5) * 0.5) };
+            this.scene.add(p); this.particles.push(p);
+        }
+        if (window.sfx && window.sfx.explosion) window.sfx.explosion.play();
+    }
+
+    update(camera, now, gameState, updateHUD) {
+        const shipPos = new THREE.Vector3(0, -1.5, -4).applyMatrix4(camera.matrixWorld);
+
+        for (let i = this.enemies.length - 1; i >= 0; i--) {
+            const enemy = this.enemies[i];
+            const distSq = enemy.position.distanceToSquared(shipPos);
+
+            if (enemy.position.z < -60) {
+                enemy.position.z += window.gameState.moveSpeed * 3.5;
+            } else if (enemy.position.z < -20 && enemy.userData.behavior !== 'diving') {
+                if (enemy.userData.behavior === 'diver' && Math.random() < 0.005) {
+                    enemy.userData.behavior = 'diving'; 
+                    this.fireBurst(enemy, camera);
+                }
+            } else {
+                // THE GALAGA DIVE: Enemies loop in a spiraling pattern!
+                enemy.position.z += window.gameState.moveSpeed * 1.5;
+                if (enemy.userData.behavior === 'diving') {
+                    enemy.userData.diveTimer = (enemy.userData.diveTimer || 0) + 0.1;
+                    enemy.position.y -= 0.15; 
+                    enemy.position.x += Math.sin(enemy.userData.diveTimer) * 0.25; // Loop-de-loop math
+                    enemy.rotation.x = THREE.MathUtils.lerp(enemy.rotation.x, Math.PI / 6, 0.1);
+                    enemy.rotation.z = Math.sin(enemy.userData.diveTimer) * 1.5; // Visibly bank into the loop
+                }
+            }
+
+            if (enemy.userData.type === 'striker') {
+                if (enemy.userData.behavior !== 'diving') {
+                    const sway = Math.sin(now * 0.003 + i);
+                    enemy.rotation.z = sway * 0.5; 
+                    enemy.position.x += sway * 0.08;
+                }
+                if (enemy.position.z > -60 && enemy.position.z < -20 && Math.random() < 0.002) { 
+                    this.fireAtPlayer(enemy, camera); 
+                }
+            } else if (enemy.userData.type === 'mine') {
+                enemy.rotation.y += 0.02; enemy.rotation.x += 0.01;
+            } else if (enemy.userData.type === 'seeker') {
+                enemy.rotation.z += 0.1; 
+                const dir = new THREE.Vector3().subVectors(shipPos, enemy.position).normalize();
+                const lunge = Math.max(0.10, 30 / Math.max(distSq, 1)); 
+                enemy.position.addScaledVector(dir, Math.min(lunge, 0.4));
+            }
+
+            if (distSq < 6.0) { this.damagePlayer(enemy.userData.type, updateHUD); this.scene.remove(enemy); this.enemies.splice(i, 1); continue; }
+            
+            if (enemy.position.z > 10) { 
+                enemy.position.set((Math.random() - 0.5) * 20, (Math.random() - 0.5) * 10, -250);
+                enemy.userData.behavior = 'standard'; 
+                enemy.rotation.set(0, 0, 0);
+            }
+        }
+
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const p = this.particles[i];
+            p.position.add(p.userData.velocity);
+            p.userData.timer++; p.scale.multiplyScalar(0.95);
+            if (p.userData.timer > 30 || p.scale.x < 0.01) { this.scene.remove(p); this.particles.splice(i, 1); }
+        }
+
+        for (let i = this.enemyProjectiles.length - 1; i >= 0; i--) {
+            const p = this.enemyProjectiles[i];
+            p.position.addScaledVector(p.userData.dir, 0.35);
+            
+            if (p.position.distanceToSquared(shipPos) < 2.0) { this.damagePlayer('bolt', updateHUD); this.scene.remove(p); this.enemyProjectiles.splice(i, 1); }
+            else if (p.position.z > 20) { this.scene.remove(p); this.enemyProjectiles.splice(i, 1); }
+        }
+    }
+
     fireAtPlayer(enemy, camera) {
-        const bulletGeo = new THREE.SphereGeometry(0.4, 8, 8);
-        const bulletMat = new THREE.MeshBasicMaterial({ color: 0xff0055 });
-        const bullet = new THREE.Mesh(bulletGeo, bulletMat);
+        const bullet = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 2.0, 8), new THREE.MeshBasicMaterial({ color: 0xff0055 }));
+        const shipPos = new THREE.Vector3(0, -1.5, -4).applyMatrix4(camera.matrixWorld);
         
         bullet.position.copy(enemy.position);
-        const dir = new THREE.Vector3().subVectors(camera.position, enemy.position).normalize();
-        
-        // Random Spread
-        dir.x += (Math.random() - 0.5) * 0.05;
-        dir.y += (Math.random() - 0.5) * 0.05;
+        bullet.lookAt(shipPos); 
+        bullet.rotation.x += Math.PI / 2; 
+
+        const dir = new THREE.Vector3().subVectors(shipPos, enemy.position).normalize();
+        dir.x += (Math.random() - 0.5) * 0.05; dir.y += (Math.random() - 0.5) * 0.05;
 
         bullet.userData.dir = dir;
         this.scene.add(bullet);
         this.enemyProjectiles.push(bullet);
-        if (sfx.laser) sfx.laser.play();
+        if (window.sfx && window.sfx.laser) window.sfx.laser.play();
     }
 
     fireBurst(enemy, camera) {
-        for (let i = 0; i < 3; i++) { // Fire 3 bullets in quick succession
-            setTimeout(() => {
-                if (this.enemies.includes(enemy)) {
-                    this.fireAtPlayer(enemy, camera);
-                }
-            }, i * 150);
+        for (let i = 0; i < 3; i++) { setTimeout(() => { if (this.enemies.includes(enemy)) this.fireAtPlayer(enemy, camera); }, i * 300); }
+    }
+
+    damagePlayer(source, updateHUD) {
+        // STAR FOX LOGIC: Do no damage if the player is currently barrel rolling
+        if (window.player && window.player.isInvulnerable) {
+            return;
         }
-    }
 
-    damagePlayer(source) {
-        const damageMap = { mine: 25, seeker: 35, striker: 20, bolt: 10 };
-        window.gameState.health -= damageMap[source] || 10;
-        window.gameState.multiplier = 1;
-    }
-
-    removeEnemy(enemy, index) {
-        this.scene.remove(enemy);
-        this.enemies.splice(index, 1);
+        const dmg = { mine: 25, seeker: 35, striker: 20, bolt: 5 };
+        window.gameState.health = Math.max(0, window.gameState.health - (dmg[source] || 5));
+        window.gameState.multiplier = 1; 
+        
+        if (window.sfx && window.sfx.player_damage) window.sfx.player_damage.play();
+        if (window.player) {
+            window.player.flashRed();
+            window.player.camera.position.x += (Math.random() - 0.5) * 1.5;
+            window.player.camera.position.y += (Math.random() - 0.5) * 1.5;
+        }
+        if (updateHUD) updateHUD();
     }
 }

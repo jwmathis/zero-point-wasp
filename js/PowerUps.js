@@ -5,25 +5,23 @@ export class PowerUpSystem {
         this.scene = scene;
         this.powerUps = [];
 
-        
         this.geos = {
             health: new THREE.TorusGeometry(0.5, 0.2, 8, 24),
-            ammo: new THREE.IcosahedronGeometry(0.7, 0)
+            surge: new THREE.IcosahedronGeometry(0.7, 0) // Renamed 'ammo' to 'surge'
         };
 
         // Materials with a neon glow
         this.mats = {
-            ammo: new THREE.MeshBasicMaterial({ color: 0xFF0055, wireframe: true }),
+            surge: new THREE.MeshBasicMaterial({ color: 0xFF0055, wireframe: true }),
             health: new THREE.MeshBasicMaterial({ color: 0x00FFFF, wireframe: true }),
         };
     }
 
     spawn() {
-        const types = ['ammo', 'health'];
+        const types = ['surge', 'health'];
         const type = types[Math.floor(Math.random() * types.length)];
         const mesh = new THREE.Mesh(this.geos[type], this.mats[type]);
 
-        // Spawn away in the distance
         mesh.position.set(
             (Math.random() - 0.5) * 20,
             (Math.random() - 0.5) * 20,
@@ -31,27 +29,28 @@ export class PowerUpSystem {
         );
 
         mesh.userData = { type };
+        mesh.scale.set(1.5, 1.5, 1.5);
         this.scene.add(mesh);
         this.powerUps.push(mesh);
     }
 
     update(camera, gameState, updateHUD) {
+        const shipPos = new THREE.Vector3(0, -1.5, -4).applyMatrix4(camera.matrixWorld);
+
         for (let i = this.powerUps.length - 1; i >= 0; i--) {
             const p = this.powerUps[i];
 
-            // Move toward the player
-            p.position.z += window.gameState.moveSpeed * 1.2; // Speed matches world speed
+            p.position.z += window.gameState.moveSpeed * 1.2; 
             p.rotation.y += 0.05;
 
-            // Collision Detection
-            const distSq = p.position.distanceToSquared(camera.position);
-            if (distSq < 9) { // 2 units away, squared for performance, adjust as needed for hitbox size
+            const distSq = p.position.distanceToSquared(shipPos);
+            
+            if (distSq < 12) { 
                 this.collect(p, gameState, updateHUD);
                 this.remove(p, i);
                 continue;
             }
 
-            // Cleanup if missed
             if (p.position.z > 10) {
                 this.remove(p, i);
             }
@@ -59,20 +58,28 @@ export class PowerUpSystem {
     }
 
     collect(p, gameState, updateHUD) {
-        if (p.userData.type === 'ammo') {
-            gameState.ammo = gameState.maxAmmo;
+        if (p.userData.type === 'surge') {
+            // Replaced ammo refill with a massive score and multiplier boost!
+            gameState.score += 1000;
+            gameState.multiplier = 5.0;
+            if (window.createScorePopup) window.createScorePopup(p.position, 1000);
+            
             const reloadHaze = document.getElementById('reload-haze');
-            reloadHaze.style.display = 'block';
-            setTimeout(() => { reloadHaze.style.display = 'none'; }, 1000);
+            if(reloadHaze) {
+                reloadHaze.style.display = 'block';
+                setTimeout(() => { reloadHaze.style.display = 'none'; }, 1000);
+            }
 
         } else if (p.userData.type === 'health') {
             gameState.health = Math.min(gameState.health + 25, 100);
             const healHaze = document.getElementById('heal-haze');
-            healHaze.style.display = 'block';
-            setTimeout(() => { healHaze.style.display = 'none'; }, 1000);
+            if(healHaze) {
+                healHaze.style.display = 'block';
+                setTimeout(() => { healHaze.style.display = 'none'; }, 1000);
+            }
         }
-        updateHUD();
-        if (sfx.powerup) sfx.powerup.play();
+        if (window.sfx && window.sfx.powerup) window.sfx.powerup.play();
+        if(updateHUD) updateHUD();
     }
 
     remove(p, index) {

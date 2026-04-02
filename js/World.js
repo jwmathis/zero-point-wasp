@@ -8,17 +8,16 @@ export class Wormhole {
     constructor(scene) {
         this.scene = scene;
         this.segments = [];
-        this.numSegments = 25;   // Total rings in the scene
-        this.spacing = 15;      // Distance between each ring
-        this.tunnelRadius = 18;  // How wide the tunnel is
-        this.baseSpeed = 1.1;    // Speed of travel
+        this.numSegments = 25;   
+        this.spacing = 15;      
+        this.tunnelRadius = 24;  
+        this.baseSpeed = 1.1;    
         this.speedLines = [];
         
         this.init();
     }
 
     init() {
-        // --- CREATE TUNNEL RINGS ---
         const ringGeo = new THREE.TorusGeometry(this.tunnelRadius, 0.15, 16, 100);
         
         for (let i = 0; i < this.numSegments; i++) {
@@ -29,48 +28,43 @@ export class Wormhole {
             this.segments.push(ring);
         }
 
-        // --- CREATE SPEED LINES (The "Warp" Effect) ---
         const lineGeo = new THREE.BoxGeometry(0.05, 0.05, 15);
         const lineMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 });
 
         for (let i = 0; i < 40; i++) {
             const line = new THREE.Mesh(lineGeo, lineMat);
             this.resetSpeedLine(line);
-            line.position.z = Math.random() * -300;  // Randomly scatter them initially
+            line.position.z = Math.random() * -300;  
             this.scene.add(line);
             this.speedLines.push(line);
         }
     }
 
-    /**
-     * Resets a speed line to the far distance with a new random X/Y
-     */
     resetSpeedLine(line) {
         const angle = Math.random() * Math.PI * 2;
-        const radius = 5 + Math.random() * 20; // Keep them outside the ship's path
+        const radius = 5 + Math.random() * 20; 
         line.position.x = Math.cos(angle) * radius;
         line.position.y = Math.sin(angle) * radius;
         line.position.z = -300;
     }
 
     update(gameState) {
-        const time = performance.now() * 0.001;
+        const timeSec = performance.now() * 0.001;
 
         // UPDATE TUNNEL RINGS
         this.segments.forEach((ring, i) => {
             ring.position.z += gameState.moveSpeed;
 
             ring.rotation.z += 0.005;
-            const scale = 1 + Math.sin(time + i) * 0.05;
+            const scale = 1 + Math.sin(timeSec + i) * 0.05;
             ring.scale.set(scale, scale, 1);
 
-            // Dynamic Curving: Evaluate X/Y based on current Z location
-            const curveMod = 2 + (gameState.difficultyLevel || 0);
-            ring.position.x = Math.sin(ring.position.z * 0.02 + time * 1.5) * curveMod;
-            ring.position.y = Math.cos(ring.position.z * 0.02 + time * 1.5) * curveMod;
+            // Synchronized curve formula matches main.js dynamic boundaries
+            const curveMod = 1.5 + ((gameState.difficultyLevel || 0) * 0.2);
+            ring.position.x = Math.sin(ring.position.z * 0.02 + timeSec * 1.5) * curveMod;
+            ring.position.y = Math.cos(ring.position.z * 0.02 + timeSec * 1.5) * curveMod;
 
             if (ring.position.z > 20) {
-                // Use recycling math to prevent gaps
                 ring.position.z -= (this.numSegments * this.spacing);
                 
                 const hue = (0.6 - ((gameState.difficultyLevel || 0) * 0.05) + (i * 0.01)) % 1;
