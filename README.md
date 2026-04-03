@@ -4,7 +4,7 @@
 *Zero-Point: The Wasp Protocol* is a high-speed, 3D arcade rail-shooter inspired by the kinetic, dodge-and-weave mechanics of *Star Fox* and the relentless enemy formations of *Galaga*. Built entirely from scratch in Three.js, you must pilot the Star Sparrow starfighter through an infinite, collapsing wormhole while defending against waves of rogue automated defense drones.
 
 ## BRIEFING: THE LORE
-The Zero-Point wormhole was supposed to be humanity's ultimate transit corridor. Instead, the automated defense grid--the Wasp Protocol--has gone rogue, trapping civilian vessels inside the collapsing tunnel.
+The Zero-Point wormhole was supposed to be humanity's ultimate transit corridor. Instead, the automated defense grid&mdash;the Wasp Protocol&mdash;has gone rogue, trapping civilian vessels inside the collapsing tunnel.
 
 As a Neural-Link Pilot, your consciousness has been directyl uploaded to a Star Sparrow Interceptor. Your objective is simple: Dive into the wormhole, survive the twisting spatial anomalies, and vaporize the rogue drone formations to increase your Sync Rating before the tunnel collapses.
 
