@@ -58,3 +58,101 @@ Occasionally, the destroyed drones will leave behind residual energy cores. Fly 
 * **Engine**: Three.js (WebGL)
 * **Language**: JavaScript (ES6 Modules), HTML5, CSS3
 * **Key Features**: Custom 3D collision math, kinematic object pooling, dynamic FOV warping, additive-blending plasma rendering, and mathematical procedural terrain generation.
+
+**Initial Game Architecture**
+```mermaid
+flowchart TD
+    Input[User Input: Keyboard &amp; Mouse]
+    Main[Game Director: main.js]
+    Entities[Game Entities: Player, Enemies, World]
+    ThreeJS[Three.js WebGL Renderer]
+    HUD[HTML/CSS HUD Overlay]
+
+    Input -->|Triggers Events| Main
+    Main -->|Updates State| Entities
+    Main -->|Updates DOM| HUD
+    Entities -->|Passes 3D Data| ThreeJS
+    ThreeJS -->|Renders Frame| Display([Browser Canvas])
+```
+**Expanded Game Architecture**
+```mermaid
+graph TD
+    %% Node Styling
+    classDef user fill:#222,stroke:#00F2FF,stroke-width:2px,color:#fff;
+    classDef logic fill:#001a33,stroke:#00F2FF,stroke-width:1px,color:#fff;
+    classDef render fill:#111,stroke:#FF0055,stroke-width:1px,color:#fff;
+    classDef data fill:#222,stroke:#FFD700,stroke-width:1px,color:#fff;
+
+    %% Actors and Inputs
+    Player((Player))
+    Input[Keyboard / Mouse]
+    
+    Player --> Input
+    
+    %% Main Architecture Blocks
+    subgraph "Zero-Point Application"
+        UI[HTML / CSS UI Overlay]
+        
+        subgraph "Game Engine (Vanilla ES6)"
+            State[(Global Game State)]
+            Loop[Main Animation Loop]
+            Systems[Game Modules: Player, Enemies, etc.]
+        end
+        
+        subgraph "Rendering Pipeline (Three.js)"
+            Assets[Asset Loader: GLTF, Audio]
+            WebGL[WebGL Canvas Renderer]
+        end
+    end
+
+    %% Connections
+    Input -->|Triggers events| UI
+    Input -->|Updates state| State
+    
+    Loop -->|Reads/Writes| State
+    Loop -->|Updates| Systems
+    
+    Assets -->|Supplies meshes| Systems
+    Systems -->|Sends 3D data| WebGL
+    UI -.->|Overlays| WebGL
+    
+    WebGL -->|Displays frame| Player
+
+    %% Apply styles safely at the end
+    class Player,Input user;
+    class UI,Loop,Systems logic;
+    class State,Assets data;
+    class WebGL render;
+```
+
+**Expanded Game Architecture 2**
+```mermaid
+flowchart TD
+    %% Define styles
+    classDef core fill:#000,stroke:#00F2FF,stroke-width:2px,color:#00F2FF;
+    classDef system fill:#001a33,stroke:#00F2FF,stroke-width:1px,color:#fff;
+    classDef logic fill:#111,stroke:#FF0055,stroke-width:1px,color:#fff;
+
+    %% Define flow
+    Start([requestAnimationFrame]) --> Time[Calculate Time & Difficulty]
+    Time --> Input[Process W/A/S/D/Shift Input]
+    Input --> Wormhole[Wormhole.update: Shift Tunnel Curves]
+    Wormhole --> Player[Player.update: Clamp Boundaries & Move]
+    Player --> PowerUps[PowerUps.update: Move & Check Collect]
+    PowerUps --> Projectiles[Projectiles.update: Move Lasers/Surge]
+    Projectiles --> Spawner{Spawn Timer Ready?}
+    Spawner -- Yes --> Spawn[EnemySystem: Spawn Formation or Random]
+    Spawner -- No --> EnemyAI[EnemySystem.update: Dive Bombs & Movement]
+    Spawn --> EnemyAI
+    EnemyAI --> Collisions[Check Laser/Surge vs Enemy Hitboxes]
+    Collisions --> Render[(renderer.render)]
+    Render --> Start
+
+    %% Apply styles safely at the end
+    class Start,Render core;
+    class Time,Input,Spawner,Collisions logic;
+    class Wormhole,Player,PowerUps,Projectiles,Spawn,EnemyAI system;
+```
+
+
+
