@@ -1,6 +1,14 @@
 # ZERO-POINT: THE WASP PROTOCOL
 **"Terminal Initialization Required...Neural Link Established."**
 
+![Three.js](https://img.shields.io/badge/Three.js-black?logo=three.js&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)
+![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white)
+![VS Code](https://img.shields.io/badge/VS_Code-007ACC?logo=visual-studio-code&logoColor=white)
+![Course](https://img.shields.io/badge/Mercer_University-SSE_643_Capstone-F56600.svg)
+![Lines of Code](https://img.shields.io/badge/LOC-<1000-blue.svg)
+![Status](https://img.shields.io/badge/Status-Completed-success.svg)
+
 *Zero-Point: The Wasp Protocol* is a high-speed, 3D arcade rail-shooter inspired by the kinetic, dodge-and-weave mechanics of *Star Fox* and the relentless enemy formations of *Galaga*. Built entirely from scratch in Three.js, you must pilot the Star Sparrow starfighter through an infinite, collapsing wormhole while defending against waves of rogue automated defense drones.
 
 ## BRIEFING: THE LORE
